@@ -1,0 +1,56 @@
+[
+  {
+    "country": "France",
+    "guidance": "France requires works council notification for supplier contracts above €50,000 and mandates French-language contract addendums.",
+    "requiresLocalLegalReview": true,
+    "approvalThresholdMultiplier": 1.0
+  },
+  {
+    "country": "Germany",
+    "guidance": "Germany requires data processing agreements (DPA) for any supplier handling personal data, per GDPR and BDSG.",
+    "requiresLocalLegalReview": true,
+    "approvalThresholdMultiplier": 1.0
+  },
+  {
+    "country": "United States",
+    "guidance": "US engagements over $100,000 require a signed Master Service Agreement (MSA) and SOC 2 review for IT suppliers.",
+    "requiresLocalLegalReview": false,
+    "approvalThresholdMultiplier": 1.1
+  },
+  {
+    "country": "United Kingdom",
+    "guidance": "UK engagements must confirm IR35 status for any contractor-based services before proceeding.",
+    "requiresLocalLegalReview": false,
+    "approvalThresholdMultiplier": 1.0
+  },
+  {
+    "country": "Spain",
+    "guidance": "Spain requires local tax registration verification for suppliers invoicing above €30,000.",
+    "requiresLocalLegalReview": true,
+    "approvalThresholdMultiplier": 0.9
+  },
+  {
+    "country": "Italy",
+    "guidance": "Italy requires anti-mafia certification (Documento Antimafia) for contracts above €150,000.",
+    "requiresLocalLegalReview": true,
+    "approvalThresholdMultiplier": 1.0
+  },
+  {
+    "country": "Belgium",
+    "guidance": "Belgium requires works council consultation for supplier changes affecting more than 20 employees.",
+    "requiresLocalLegalReview": false,
+    "approvalThresholdMultiplier": 1.0
+  },
+  {
+    "country": "Netherlands",
+    "guidance": "Netherlands requires a Works Council (Ondernemingsraad) advisory review for strategic supplier changes.",
+    "requiresLocalLegalReview": false,
+    "approvalThresholdMultiplier": 1.0
+  },
+  {
+    "country": "Unknown",
+    "guidance": "No country-specific guidance is available. Default to global policy and recommend confirming local requirements with regional procurement contact.",
+    "requiresLocalLegalReview": true,
+    "approvalThresholdMultiplier": 1.0
+  }
+]

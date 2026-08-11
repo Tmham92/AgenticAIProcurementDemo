@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="ProcurementConcierge.Api\ProcurementConcierge.Api.csproj" />
+  <Project Path="ProcurementConcierge.Web\ProcurementConcierge.Web.csproj" />
+  <Project Path="ProcurementConcierge.Contracts\ProcurementConcierge.Contracts.csproj" />
+</Solution>

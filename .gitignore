@@ -1,0 +1,56 @@
+# .NET build artifacts
+[Bb]in/
+[Oo]bj/
+out/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# Test results
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# SQLite databases and journal files (local interaction log store)
+*.db
+*.db-shm
+*.db-wal
+
+# Local logs
+*.log
+
+# Publish output
+publish/
+PublishProfiles/
+
+# Local user secrets / environment overrides
+appsettings.*.local.json
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Rider
+*.DotSettings.user
+
+# ASP.NET Core
+wwwroot/lib/

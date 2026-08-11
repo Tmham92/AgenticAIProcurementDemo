@@ -1,0 +1,524 @@
+@page "/"
+@inject IProcurementConciergeApiClient ConciergeService
+@rendermode InteractiveServer
+
+<PageTitle>Procurement Adoption Concierge</PageTitle>
+
+<div class="row">
+    <div class="col-lg-6">
+        <h2 class="h5">Describe your procurement need</h2>
+        <p class="text-muted">
+            Enter your request in natural language. Example: "I'm located in France. I need a
+            marketing agency for a campaign. Budget is €80,000. We normally use Agency X."
+        </p>
+
+        <textarea class="form-control mb-3" rows="6" @bind="_message" placeholder="Describe your procurement request..."></textarea>
+
+        <button class="btn btn-primary" @onclick="SubmitAsync" disabled="@_isProcessing">
+            @if (_isProcessing)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            }
+            Get Guidance
+        </button>
+
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="alert alert-danger mt-3">@_errorMessage</div>
+        }
+
+        <hr class="my-4" />
+
+        <h2 class="h5">Example prompts</h2>
+        <p class="text-muted">Click an example to load it and see a different outcome.</p>
+
+        <div class="list-group">
+            @foreach (var example in _examplePrompts)
+            {
+                <button type="button" class="list-group-item list-group-item-action" @onclick="() => LoadExample(example.Message)">
+                    <div class="d-flex w-100 justify-content-between">
+                        <strong>@example.Title</strong>
+                        <span class="badge @ExampleBadgeClass(example.ExpectedOutcome)">@example.ExpectedOutcome</span>
+                    </div>
+                    <p class="mb-1 text-muted small">@example.Message</p>
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        @if (_response is not null)
+        {
+            <h2 class="h5">Guidance Result</h2>
+
+            @if (_response.ProcurementCoaching is not null)
+            {
+                <div class="card mb-3 @(_response.ProcurementCoaching.RequestQualityScore < 70 ? "border-warning" : "border-success")">
+                    <div class="card-body">
+                        <h3 class="h6">Procurement Coaching</h3>
+                        <dl class="row mb-2">
+                            <dt class="col-sm-4">Request Quality Score</dt>
+                            <dd class="col-sm-8">@_response.ProcurementCoaching.RequestQualityScore / 100</dd>
+                        </dl>
+
+                        @if (_response.ProcurementCoaching.MissingInformation.Count > 0)
+                        {
+                            <p class="mb-1"><strong>Missing Information</strong></p>
+                            <ul>
+                                @foreach (var missing in _response.ProcurementCoaching.MissingInformation)
+                                {
+                                    <li>@missing</li>
+                                }
+                            </ul>
+                        }
+
+                        @if (_response.ProcurementCoaching.ImprovementSuggestions.Count > 0)
+                        {
+                            <p class="mb-1"><strong>Improvement Suggestions</strong></p>
+                            <ul>
+                                @foreach (var suggestion in _response.ProcurementCoaching.ImprovementSuggestions)
+                                {
+                                    <li>@suggestion</li>
+                                }
+                            </ul>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(_response.ProcurementCoaching.SuggestedRequest))
+                        {
+                            <p class="mb-1"><strong>Suggested Request</strong></p>
+                            <p class="mb-0 fst-italic">"@_response.ProcurementCoaching.SuggestedRequest"</p>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="card mb-3 border-primary">
+                <div class="card-body">
+                    <h3 class="h6">Recommendation</h3>
+                    <p>@_response.Recommendation</p>
+                    <h3 class="h6">Recommended Next Action</h3>
+                    <p class="mb-0 fw-semibold">@_response.RecommendedNextAction</p>
+                </div>
+            </div>
+
+
+            {
+                <div class="card mb-3 @(_response.RequestQuality.RequestQualityScore < 70 ? "border-warning" : "border-success")">
+                    <div class="card-body">
+                        <h3 class="h6">Request Quality Feedback</h3>
+                        <dl class="row mb-2">
+                            <dt class="col-sm-4">Quality Score</dt>
+                            <dd class="col-sm-8">
+                                @_response.RequestQuality.RequestQualityScore / 100
+                                <span class="badge @RiskBadgeClass(QualityRiskEquivalent(_response.RequestQuality.QualityLevel))">@_response.RequestQuality.QualityLevel</span>
+                            </dd>
+                        </dl>
+
+                        @if (_response.RequestQuality.MissingInformation.Count > 0)
+                        {
+                            <p class="mb-1"><strong>Missing Information</strong></p>
+                            <ul>
+                                @foreach (var missing in _response.RequestQuality.MissingInformation)
+                                {
+                                    <li>@missing</li>
+                                }
+                            </ul>
+                        }
+
+                        @if (_response.RequestQuality.ImprovementSuggestions.Count > 0)
+                        {
+                            <p class="mb-1"><strong>Suggestions</strong></p>
+                            <ul>
+                                @foreach (var suggestion in _response.RequestQuality.ImprovementSuggestions)
+                                {
+                                    <li>@suggestion</li>
+                                }
+                            </ul>
+                        }
+
+                        @if (_response.RequestQuality.RequestQualityScore < 70 && !string.IsNullOrWhiteSpace(_response.RequestQuality.ExampleImprovedRequest))
+                        {
+                            <p class="mb-1"><strong>Example Improved Request</strong></p>
+                            <p class="mb-0 fst-italic">"@_response.RequestQuality.ExampleImprovedRequest"</p>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (_response.NeedsHumanReview)
+            {
+                <div class="alert alert-warning">
+                    <strong>Needs Human Review:</strong> One or more extracted fields have low confidence
+                    (Category: @_response.CategoryConfidence%, Country: @_response.CountryConfidence%,
+                    Spend: @_response.SpendConfidence%). Please verify the details below before proceeding.
+                </div>
+            }
+
+            <div class="card mb-3 @EscalationBorderClass(_response.EscalationLevel)">
+                <div class="card-body">
+                    <h3 class="h6">Escalation Requirement</h3>
+                    <span class="badge @EscalationBadgeClass(_response.EscalationLevel)">@_response.EscalationLevel</span>
+                    <p class="mb-0 mt-2">@_response.EscalationReason</p>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h3 class="h6">Extracted Request</h3>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Category</dt>
+                        <dd class="col-sm-8">@_response.Category <span class="text-muted">(confidence: @_response.CategoryConfidence%)</span></dd>
+                        <dt class="col-sm-4">Country</dt>
+                        <dd class="col-sm-8">@_response.Country <span class="text-muted">(confidence: @_response.CountryConfidence%)</span></dd>
+                        <dt class="col-sm-4">Estimated Spend</dt>
+                        <dd class="col-sm-8">@_response.EstimatedSpend.ToString("C") <span class="text-muted">(confidence: @_response.SpendConfidence%)</span></dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h3 class="h6">Compliance Score</h3>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Score</dt>
+                        <dd class="col-sm-8">@_response.ComplianceScore / 100</dd>
+                        <dt class="col-sm-4">Level</dt>
+                        <dd class="col-sm-8"><span class="badge @RiskBadgeClass(_response.ComplianceLevel)">@_response.ComplianceLevel</span></dd>
+                    </dl>
+                </div>
+            </div>
+
+            @if (_response.ProcOpsAssessment is not null)
+            {
+                <div class="card mb-3 @(_response.ProcOpsAssessment.InterventionRequired ? "border-danger" : "border-success")">
+                    <div class="card-body">
+                        <h3 class="h6">ProcOps Dependency</h3>
+                        <span class="badge @(_response.ProcOpsAssessment.InterventionRequired ? "bg-danger" : "bg-success")">
+                            @(_response.ProcOpsAssessment.InterventionRequired ? "Intervention Likely" : "No Intervention Expected")
+                        </span>
+                        <p class="mb-1 mt-2">@_response.ProcOpsAssessment.Reason</p>
+                        <p class="mb-0 fst-italic">@_response.ProcOpsAssessment.Recommendation</p>
+                    </div>
+                </div>
+            }
+
+            @if (_response.CoupaSimulation is not null)
+            {
+                <div class="card mb-3 border-info">
+                    <div class="card-body">
+                        <h3 class="h6">Simulated Coupa Requisition</h3>
+                        <dl class="row mb-2">
+                            <dt class="col-sm-4">Requisition ID</dt>
+                            <dd class="col-sm-8">@_response.CoupaSimulation.DraftRequisition.Id</dd>
+                            <dt class="col-sm-4">Status</dt>
+                            <dd class="col-sm-8"><span class="badge bg-info text-dark">@_response.CoupaSimulation.DraftRequisition.Status</span></dd>
+                            <dt class="col-sm-4">Supplier</dt>
+                            <dd class="col-sm-8">@(_response.CoupaSimulation.DraftRequisition.SupplierName ?? "None assigned")</dd>
+                        </dl>
+
+                        @if (_response.CoupaSimulation.PreferredSuppliers.Count > 0)
+                        {
+                            <p class="mb-1 fw-semibold">Preferred Suppliers</p>
+                            <ul class="mb-2">
+                                @foreach (var supplier in _response.CoupaSimulation.PreferredSuppliers)
+                                {
+                                    <li>@supplier.Name (@supplier.Rating)</li>
+                                }
+                            </ul>
+                        }
+
+                        @if (_response.CoupaSimulation.ApprovalRoute.Count > 0)
+                        {
+                            <p class="mb-1 fw-semibold">Approval Route</p>
+                            <ol class="mb-0">
+                                @foreach (var approval in _response.CoupaSimulation.ApprovalRoute)
+                                {
+                                    <li>@approval.ApproverRole - <span class="badge bg-secondary">@approval.Status</span></li>
+                                }
+                            </ol>
+                        }
+                    </div>
+                </div>
+            }
+
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h3 class="h6">Compliance &amp; Approval</h3>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Compliance Status</dt>
+                        <dd class="col-sm-8">@_response.ComplianceStatus</dd>
+                        <dt class="col-sm-4">Compliance Risk</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge @RiskBadgeClass(_response.ComplianceRisk)">@_response.ComplianceRisk</span>
+                        </dd>
+                        <dt class="col-sm-4">Required Approval</dt>
+                        <dd class="col-sm-8">@_response.RequiredApproval</dd>
+                    </dl>
+                </div>
+            </div>
+
+            @if (_response.PolicyDeviations.Count > 0)
+            {
+                <div class="card mb-3 border-danger">
+                    <div class="card-body">
+                        <h3 class="h6">Policy Deviations</h3>
+                        @foreach (var deviation in _response.PolicyDeviations)
+                        {
+                            <div class="mb-2">
+                                <span class="badge @RiskBadgeClass(deviation.Severity)">@deviation.Severity</span>
+                                <strong>@deviation.Type</strong>
+                                <p class="mb-0">@deviation.Description</p>
+                                <p class="mb-0 fst-italic text-muted">Recommended action: @deviation.RecommendedAction</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h3 class="h6">Preferred Suppliers</h3>
+                    @if (_response.PreferredSuppliers.Count > 0)
+                    {
+                        <ul class="mb-0">
+                            @foreach (var supplier in _response.PreferredSuppliers)
+                            {
+                                <li>@supplier</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="mb-0 text-muted">No preferred suppliers configured for this category.</p>
+                    }
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_response.CountryGuidance))
+            {
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h3 class="h6">Country-Specific Guidance</h3>
+                        <p class="mb-0">@_response.CountryGuidance</p>
+                    </div>
+                </div>
+            }
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <h3 class="h6 mb-1">Agent Reasoning Path</h3>
+                            <p class="text-muted small mb-0">
+                                The Procurement Concierge behaves as an Agentic Procurement Adoption Layer: the
+                                trace below shows every specialized agent/service invoked, in order. Click a row
+                                to expand the full input/output details.
+                            </p>
+                        </div>
+                        <div class="btn-group btn-group-sm flex-shrink-0" role="group">
+                            <button type="button" class="btn btn-outline-secondary" @onclick="ExpandAllSteps">Expand All</button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="CollapseAllSteps">Collapse All</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 2.5rem;"></th>
+                                    <th>#</th>
+                                    <th>Service</th>
+                                    <th>Action</th>
+                                    <th>Outcome</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var step in _response.AgentExecutionPath)
+                                {
+                                    var isExpanded = _expandedSteps.Contains(step.StepNumber);
+                                    <tr role="button" class="reasoning-step-row" @onclick="() => ToggleStep(step.StepNumber)">
+                                        <td class="text-center">
+                                            <span class="reasoning-chevron @(isExpanded ? "expanded" : "")">&#9656;</span>
+                                        </td>
+                                        <td>@step.StepNumber</td>
+                                        <td><span class="badge bg-secondary">@step.ServiceName</span></td>
+                                        <td>@step.Action</td>
+                                        <td class="text-truncate" style="max-width: 20rem;">@step.Output</td>
+                                        <td class="text-nowrap">@step.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</td>
+                                    </tr>
+                                    @if (isExpanded)
+                                    {
+                                        <tr class="reasoning-step-details">
+                                            <td></td>
+                                            <td colspan="5">
+                                                <dl class="row mb-0">
+                                                    <dt class="col-sm-2">Input</dt>
+                                                    <dd class="col-sm-10 text-break">@step.Input</dd>
+                                                    <dt class="col-sm-2">Output</dt>
+                                                    <dd class="col-sm-10 text-break mb-0">@step.Output</dd>
+                                                </dl>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted">Submit a procurement request to see guidance here.</p>
+        }
+    </div>
+</div>
+
+@code {
+    private string _message = string.Empty;
+    private ProcurementResponse? _response;
+    private bool _isProcessing;
+    private string? _errorMessage;
+    private readonly HashSet<int> _expandedSteps = new();
+
+    private void ToggleStep(int stepNumber)
+    {
+        if (!_expandedSteps.Add(stepNumber))
+        {
+            _expandedSteps.Remove(stepNumber);
+        }
+    }
+
+    private void ExpandAllSteps()
+    {
+        if (_response is null)
+        {
+            return;
+        }
+
+        _expandedSteps.Clear();
+        foreach (var step in _response.AgentExecutionPath)
+        {
+            _expandedSteps.Add(step.StepNumber);
+        }
+    }
+
+    private void CollapseAllSteps() => _expandedSteps.Clear();
+
+    private sealed record ExamplePrompt(string Title, string Message, string ExpectedOutcome);
+
+    private readonly List<ExamplePrompt> _examplePrompts = new()
+    {
+        new ExamplePrompt(
+            "Compliant, preferred supplier",
+            "I'm located in France. I need a marketing agency for a campaign. Budget is €40,000. We normally use Havas because our brand guidelines require a consistent agency.",
+            "High"),
+        new ExamplePrompt(
+            "Non-preferred supplier deviation",
+            "I'm located in Germany. I need an IT services provider for a new project. Budget is €90,000. We want to use a boutique local agency instead of our usual suppliers.",
+            "Medium"),
+        new ExamplePrompt(
+            "Large spend requiring CPO approval",
+            "I'm located in the United States. I need professional services for a legal review. Budget is $220,000. We normally use Deloitte since this is a critical compliance matter.",
+            "High"),
+        new ExamplePrompt(
+            "Unknown category",
+            "I'm located in Spain. I need to procure some office plants and decorations for our new building. Budget is €15,000.",
+            "Low"),
+        new ExamplePrompt(
+            "Missing spend amount",
+            "I'm located in Italy. I need a marketing agency for an upcoming product launch because our current campaign is underperforming.",
+            "Medium"),
+        new ExamplePrompt(
+            "Missing country",
+            "I need an IT services provider to help modernize our internal systems. Budget is €120,000 because our current platform is out of support.",
+            "Medium"),
+        new ExamplePrompt(
+            "Low confidence / needs human review",
+            "Need some help with a thing, maybe around 5k, not sure where yet.",
+            "Low"),
+        new ExamplePrompt(
+            "Missing business justification",
+            "I'm located in Belgium. I need a professional services firm. Budget is €70,000. We usually use PwC.",
+            "Medium"),
+        new ExamplePrompt(
+            "Low quality request needing coaching",
+            "We need to buy something soon.",
+            "Low"),
+    };
+
+    private void LoadExample(string message)
+    {
+        _message = message;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_message))
+        {
+            _errorMessage = "Please describe your procurement request first.";
+            return;
+        }
+
+        _errorMessage = null;
+        _isProcessing = true;
+        _response = null;
+        _expandedSteps.Clear();
+
+        try
+        {
+            var request = new ProcurementRequest { Message = _message };
+            _response = await ConciergeService.ProcessRequestAsync(request);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred while processing your request: {ex.Message}";
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private static string RiskBadgeClass(string risk) => risk switch
+    {
+        "High" => "bg-danger",
+        "Medium" => "bg-warning text-dark",
+        "Low" => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    private static string ExampleBadgeClass(string expectedComplianceLevel) => expectedComplianceLevel switch
+    {
+        "High" => "bg-success",
+        "Medium" => "bg-warning text-dark",
+        "Low" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private static string EscalationBadgeClass(string level) => level switch
+    {
+        "Approval" => "bg-danger",
+        "Review" => "bg-warning text-dark",
+        "Automatic" => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    private static string EscalationBorderClass(string level) => level switch
+    {
+        "Approval" => "border-danger",
+        "Review" => "border-warning",
+        "Automatic" => "border-success",
+        _ => ""
+    };
+
+    private static string QualityRiskEquivalent(string qualityLevel) => qualityLevel switch
+    {
+        "High" => "Low",
+        "Medium" => "Medium",
+        "Low" => "High",
+        _ => "Medium"
+    };
+}
+

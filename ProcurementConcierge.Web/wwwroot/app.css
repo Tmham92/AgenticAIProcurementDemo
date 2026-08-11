@@ -1,0 +1,30 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+textarea.form-control {
+    resize: vertical;
+}
+
+.reasoning-step-row:hover {
+    background-color: rgba(13, 110, 253, 0.06);
+}
+
+.reasoning-chevron {
+    display: inline-block;
+    transition: transform 0.15s ease-in-out;
+}
+
+.reasoning-chevron.expanded {
+    transform: rotate(90deg);
+}
+
+.reasoning-step-details dl dt {
+    color: #6c757d;
+    font-weight: 600;
+}
+

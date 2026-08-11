@@ -1,0 +1,6 @@
+@ProcurementConcierge_HostAddress = http://localhost:5290
+
+GET {{ProcurementConcierge_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,20 @@
+[
+  {
+    "category": "Marketing Services",
+    "preferredSuppliers": [ "Havas", "Publicis" ],
+    "directorApprovalThreshold": 50000,
+    "cpoApprovalThreshold": 150000
+  },
+  {
+    "category": "IT Services",
+    "preferredSuppliers": [ "Accenture", "Capgemini" ],
+    "directorApprovalThreshold": 75000,
+    "cpoApprovalThreshold": 250000
+  },
+  {
+    "category": "Professional Services",
+    "preferredSuppliers": [ "Deloitte", "PwC" ],
+    "directorApprovalThreshold": 60000,
+    "cpoApprovalThreshold": 200000
+  }
+]

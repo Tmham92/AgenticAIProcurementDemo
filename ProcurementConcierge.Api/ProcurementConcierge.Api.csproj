@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+	<TargetFramework>net10.0</TargetFramework>
+	<Nullable>enable</Nullable>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<RootNamespace>ProcurementConcierge.Api</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+	<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+	<PackageReference Include="Microsoft.SemanticKernel" Version="1.79.0" />
+	<PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12-pre20260709125052" />
+	<PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\ProcurementConcierge.Contracts\ProcurementConcierge.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<None Update="Data\policies.json">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+	<None Update="Data\countryRules.json">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Plugins\" />
+  </ItemGroup>
+
+</Project>

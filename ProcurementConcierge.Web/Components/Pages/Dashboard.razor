@@ -1,0 +1,222 @@
+@page "/dashboard"
+@using ProcurementConcierge.Contracts
+@inject IProcurementConciergeApiClient ApiClient
+
+<PageTitle>Procurement Control Tower Dashboard</PageTitle>
+
+<h2 class="mb-4">Procurement Control Tower Dashboard</h2>
+
+@if (_loading)
+{
+    <div class="alert alert-info">Loading dashboard data...</div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">Executive Insights</div>
+                <div class="card-body">
+                    @if (_executiveInsights is { TopFindings.Count: > 0 })
+                    {
+                        <ul class="mb-0">
+                            @foreach (var finding in _executiveInsights.TopFindings)
+                            {
+                                <li>@finding</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No executive findings yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">Adoption</div>
+                <div class="card-body">
+                    <p><strong>Total Requests:</strong> @_adoptionInsights?.TotalRequests</p>
+                    <p><strong>Unknown Category Count:</strong> @_adoptionInsights?.UnknownCategoryCount</p>
+
+                    <h6>Requests per Country</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            @foreach (var kv in _adoptionInsights?.RequestsPerCountry ?? new())
+                            {
+                                <tr><td>@kv.Key</td><td>@kv.Value</td></tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <h6>Requests per Category</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            @foreach (var kv in _adoptionInsights?.RequestsPerCategory ?? new())
+                            {
+                                <tr><td>@kv.Key</td><td>@kv.Value</td></tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <h6>Most Common Deviations</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            @foreach (var kv in _adoptionInsights?.MostCommonDeviations ?? new())
+                            {
+                                <tr><td>@kv.Key</td><td>@kv.Value</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">Compliance</div>
+                <div class="card-body">
+                    <p><strong>Average Compliance Score:</strong> @_complianceInsights?.AverageComplianceScore.ToString("F1")</p>
+
+                    <h6>Compliance Level Distribution</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            @foreach (var kv in _complianceInsights?.ComplianceLevelDistribution ?? new())
+                            {
+                                <tr><td>@kv.Key</td><td>@kv.Value</td></tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <h6>Average Score per Category</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            @foreach (var kv in _complianceInsights?.AverageComplianceScorePerCategory ?? new())
+                            {
+                                <tr><td>@kv.Key</td><td>@kv.Value.ToString("F1")</td></tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <h6>Average Score per Country</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            @foreach (var kv in _complianceInsights?.AverageComplianceScorePerCountry ?? new())
+                            {
+                                <tr><td>@kv.Key</td><td>@kv.Value.ToString("F1")</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">Process Discovery Insights</div>
+                <div class="card-body">
+                    @if (_processDiscoveryInsights.Count > 0)
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr><th>Finding</th><th>Severity</th><th>Recommendation</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var insight in _processDiscoveryInsights)
+                                {
+                                    <tr>
+                                        <td>@insight.Finding</td>
+                                        <td>@insight.Severity</td>
+                                        <td>@insight.Recommendation</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No process discovery insights yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">Recent Interactions</div>
+                <div class="card-body">
+                    @if (_interactions.Count > 0)
+                    {
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Country</th>
+                                    <th>Category</th>
+                                    <th>Spend</th>
+                                    <th>Compliance</th>
+                                    <th>Deviation</th>
+                                    <th>Recommendation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var interaction in _interactions.Take(25))
+                                {
+                                    <tr>
+                                        <td>@interaction.Timestamp.ToLocalTime().ToString("g")</td>
+                                        <td>@interaction.Country</td>
+                                        <td>@interaction.Category</td>
+                                        <td>@interaction.EstimatedSpend.ToString("C0")</td>
+                                        <td>@interaction.ComplianceScore (@interaction.ComplianceLevel)</td>
+                                        <td>@(interaction.PolicyDeviation ? "Yes" : "No")</td>
+                                        <td>@interaction.Recommendation</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No interactions recorded yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private AdoptionInsights? _adoptionInsights;
+    private ComplianceInsights? _complianceInsights;
+    private ExecutiveInsights? _executiveInsights;
+    private List<InteractionRecord> _interactions = new();
+    private List<ProcessDiscoveryInsight> _processDiscoveryInsights = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _adoptionInsights = await ApiClient.GetAdoptionInsightsAsync();
+            _complianceInsights = await ApiClient.GetComplianceInsightsAsync();
+            _executiveInsights = await ApiClient.GetExecutiveInsightsAsync();
+            _interactions = await ApiClient.GetInteractionsAsync();
+            _processDiscoveryInsights = await ApiClient.GetProcessDiscoveryInsightsAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load dashboard data: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
