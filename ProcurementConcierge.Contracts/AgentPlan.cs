@@ -7,5 +7,5 @@ namespace ProcurementConcierge.Contracts;
 public class AgentPlan
 {
     public string Goal { get; set; } = string.Empty;
-    public List<PlannedTask> Tasks { get; set; } = new();
+    public List<PlannedTask> Tasks { get; set; } = [];
 }

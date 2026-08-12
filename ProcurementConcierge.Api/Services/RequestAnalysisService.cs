@@ -11,7 +11,7 @@ namespace ProcurementConcierge.Api.Services;
 /// procurement category, country, estimated spend, supplier name, and business
 /// justification, along with per-field confidence scores.
 /// </summary>
-public class RequestAnalysisService(ILLMService llmService, ILogger<RequestAnalysisService> logger) : IRequestAnalysisService
+public partial class RequestAnalysisService(ILLMService llmService, ILogger<RequestAnalysisService> logger) : IRequestAnalysisService
 {
     private readonly ILLMService _llmService = llmService;
     private readonly ILogger<RequestAnalysisService> _logger = logger;
@@ -20,9 +20,14 @@ public class RequestAnalysisService(ILLMService llmService, ILogger<RequestAnaly
         You are a procurement intake analyst. Extract structured data from procurement requests.
         Valid categories are: "Marketing Services", "IT Services", "Professional Services".
         If a field is not mentioned, use an empty string (or 0 for numbers, null for optional fields).
-        Confidence values must be integers from 0 to 100 representing how confident you are that the
-        corresponding field was correctly and unambiguously extracted from the request. Use a low
-        confidence (below 70) when the field is missing, ambiguous, or guessed.
+
+        You MUST always include categoryConfidence, countryConfidence, and spendConfidence in your
+        JSON response - these are required integer fields and must never be omitted, even when the
+        corresponding value was not mentioned in the request. Confidence values must be integers from
+        0 to 100 representing how confident you are that the corresponding field was correctly and
+        unambiguously extracted from the request. Use a low confidence (below 70) when the field is
+        missing, ambiguous, or guessed, and a high confidence (70 or above) only when the value was
+        explicitly and unambiguously stated in the request.
         """;
 
     public async Task<ProcurementAnalysis> AnalyzeAsync(string message)
@@ -47,9 +52,9 @@ public class RequestAnalysisService(ILLMService llmService, ILogger<RequestAnaly
                 EstimatedSpend = extraction.EstimatedSpend,
                 SupplierName = string.IsNullOrWhiteSpace(extraction.SupplierName) ? null : extraction.SupplierName,
                 BusinessJustification = string.IsNullOrWhiteSpace(extraction.BusinessJustification) ? null : extraction.BusinessJustification,
-                CategoryConfidence = Math.Clamp(extraction.CategoryConfidence, 0, 100),
-                CountryConfidence = Math.Clamp(extraction.CountryConfidence, 0, 100),
-                SpendConfidence = Math.Clamp(extraction.SpendConfidence, 0, 100),
+                CategoryConfidence = ResolveConfidence(extraction.CategoryConfidence, nameof(extraction.CategoryConfidence)),
+                CountryConfidence = ResolveConfidence(extraction.CountryConfidence, nameof(extraction.CountryConfidence)),
+                SpendConfidence = ResolveConfidence(extraction.SpendConfidence, nameof(extraction.SpendConfidence)),
                 OriginalMessage = message
             };
         }
@@ -78,14 +83,36 @@ public class RequestAnalysisService(ILLMService llmService, ILogger<RequestAnaly
         [JsonPropertyName("businessJustification")]
         public string? BusinessJustification { get; set; }
 
+        // Nullable so a missing value in the LLM's JSON response can be detected explicitly
+        // (rather than silently taking on a C# default), even though the system prompt
+        // requires these fields to always be present.
         [JsonPropertyName("categoryConfidence")]
-        public int CategoryConfidence { get; set; } = 50;
+        public int? CategoryConfidence { get; set; }
 
         [JsonPropertyName("countryConfidence")]
-        public int CountryConfidence { get; set; } = 50;
+        public int? CountryConfidence { get; set; }
 
         [JsonPropertyName("spendConfidence")]
-        public int SpendConfidence { get; set; } = 50;
+        public int? SpendConfidence { get; set; }
+    }
+
+    /// <summary>
+    /// Resolves a confidence value returned by the LLM. The system prompt requires the LLM to
+    /// always include these fields, so a null value here means the model failed to follow
+    /// instructions rather than that the field was genuinely low-confidence. Treat that case as
+    /// explicitly "needs human review" (0) instead of silently defaulting to a hidden value.
+    /// </summary>
+    private int ResolveConfidence(int? confidence, string fieldName)
+    {
+        if (confidence is null)
+        {
+            _logger.LogWarning(
+                "LLM response omitted required confidence field '{FieldName}'. Treating as 0 (needs human review).",
+                fieldName);
+            return 0;
+        }
+
+        return Math.Clamp(confidence.Value, 0, 100);
     }
 
     /// <summary>
@@ -108,7 +135,7 @@ public class RequestAnalysisService(ILLMService llmService, ILogger<RequestAnaly
         var knownCountries = new[] { "France", "Germany", "Spain", "Italy", "Belgium", "Netherlands", "United States", "United Kingdom" };
         foreach (var c in knownCountries)
         {
-            if (lower.Contains(c.ToLowerInvariant()))
+            if (lower.Contains(c, StringComparison.InvariantCultureIgnoreCase))
             {
                 country = c;
                 break;
@@ -116,7 +143,7 @@ public class RequestAnalysisService(ILLMService llmService, ILogger<RequestAnaly
         }
 
         decimal estimatedSpend = 0;
-        var numberMatch = System.Text.RegularExpressions.Regex.Match(message, @"(\d[\d,\.]*)\s*(euros?|eur|€|\$|usd|dollars?)?", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var numberMatch = SpendingRegex().Match(message);
         if (numberMatch.Success)
         {
             estimatedSpend = ParseSpendAmount(numberMatch.Groups[1].Value);
@@ -167,5 +194,8 @@ public class RequestAnalysisService(ILLMService llmService, ILogger<RequestAnaly
             ? value
             : 0;
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"(\d[\d,\.]*)\s*(euros?|eur|€|\$|usd|dollars?)?", System.Text.RegularExpressions.RegexOptions.IgnoreCase, "nl-NL")]
+    private static partial System.Text.RegularExpressions.Regex SpendingRegex();
 }
 

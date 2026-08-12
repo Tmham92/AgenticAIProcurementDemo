@@ -11,5 +11,5 @@ public class CountryGovernanceReport
     public int ComplianceScore { get; set; }
     public int RequestQualityScore { get; set; }
     public int PolicyDeviationCount { get; set; }
-    public List<string> TopCategories { get; set; } = new();
+    public List<string> TopCategories { get; set; } = [];
 }

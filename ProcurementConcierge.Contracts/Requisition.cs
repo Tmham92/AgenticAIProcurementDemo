@@ -13,5 +13,5 @@ public class Requisition
     public string? SupplierName { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-    public List<string> ApprovalRoute { get; set; } = new();
+    public List<string> ApprovalRoute { get; set; } = [];
 }

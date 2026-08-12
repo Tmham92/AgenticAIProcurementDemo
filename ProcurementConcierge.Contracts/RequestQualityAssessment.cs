@@ -9,7 +9,6 @@ public class RequestQualityAssessment
 {
     public int RequestQualityScore { get; set; }
     public string QualityLevel { get; set; } = string.Empty;
-    public List<string> MissingInformation { get; set; } = new();
-    public List<string> ImprovementSuggestions { get; set; } = new();
-    public string ExampleImprovedRequest { get; set; } = string.Empty;
+    public List<string> MissingInformation { get; set; } = [];
+    public List<string> ImprovementSuggestions { get; set; } = [];
 }

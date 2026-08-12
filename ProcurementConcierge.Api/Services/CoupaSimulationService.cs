@@ -23,7 +23,7 @@ public class CoupaSimulationService(IPolicyService policyService, ILogger<CoupaS
 
         if (policy is null || policy.PreferredSuppliers.Count == 0)
         {
-            return new List<Supplier>();
+            return [];
         }
 
         return policy.PreferredSuppliers

@@ -82,7 +82,7 @@ builder.Services.AddSingleton<ICountryRuleService, CountryRuleService>();
 builder.Services.AddSingleton<IRequestHistoryStore, InMemoryRequestHistoryStore>();
 builder.Services.AddScoped<IRequestAnalysisService, RequestAnalysisService>();
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
-builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<IAdoptionGuidanceService, AdoptionGuidanceService>();
 builder.Services.AddScoped<IRequestQualityService, RequestQualityService>();
 builder.Services.AddScoped<IPolicyDeviationService, PolicyDeviationService>();
 builder.Services.AddScoped<IComplianceScoringService, ComplianceScoringService>();

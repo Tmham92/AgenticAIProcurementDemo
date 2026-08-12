@@ -7,6 +7,6 @@ namespace ProcurementConcierge.Contracts;
 public class GovernanceAssessment
 {
     public string RiskLevel { get; set; } = string.Empty;
-    public List<string> Findings { get; set; } = new();
-    public List<string> Recommendations { get; set; } = new();
+    public List<string> Findings { get; set; } = [];
+    public List<string> Recommendations { get; set; } = [];
 }

@@ -36,13 +36,13 @@ public class CountryRuleService(ILogger<CountryRuleService> logger, IWebHostEnvi
                 if (!File.Exists(_countryRulesFilePath))
                 {
                     _logger.LogWarning("Country rules file not found at {Path}. Returning empty list.", _countryRulesFilePath);
-                    _cachedRules = new List<CountryRule>();
+                    _cachedRules = [];
                 }
                 else
                 {
                     var json = await File.ReadAllTextAsync(_countryRulesFilePath);
                     _cachedRules = JsonSerializer.Deserialize<List<CountryRule>>(json, JsonOptions)
-                                   ?? new List<CountryRule>();
+                                   ?? [];
                 }
             }
         }

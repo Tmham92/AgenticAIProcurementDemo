@@ -16,6 +16,7 @@ public static class MemoryKeys
     public const string ProcOpsAssessment = "ProcOpsAssessment";
     public const string Recommendation = "Recommendation";
     public const string RecommendedNextAction = "RecommendedNextAction";
+    public const string UserGuidance = "UserGuidance";
     public const string ProcessDiscoveryFindings = "ProcessDiscoveryFindings";
     public const string GovernanceAssessment = "GovernanceAssessment";
 }

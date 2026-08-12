@@ -8,5 +8,5 @@ public class ProcOpsMetrics
     public int TotalRequests { get; set; }
     public int InterventionRequiredCount { get; set; }
     public int EstimatedProcOpsTicketsAvoided { get; set; }
-    public Dictionary<string, int> InterventionReasons { get; set; } = new();
+    public Dictionary<string, int> InterventionReasons { get; set; } = [];
 }

@@ -8,7 +8,7 @@ public class ReflectionResult
 {
     public bool GoalAchieved { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public List<string> MissingInformation { get; set; } = new();
+    public List<string> MissingInformation { get; set; } = [];
     public double Confidence { get; set; }
 
     /// <summary>

@@ -7,7 +7,7 @@ namespace ProcurementConcierge.Api.Models;
 public class ProcurementPolicy
 {
     public string Category { get; set; } = string.Empty;
-    public List<string> PreferredSuppliers { get; set; } = new();
+    public List<string> PreferredSuppliers { get; set; } = [];
     public decimal DirectorApprovalThreshold { get; set; }
     public decimal CpoApprovalThreshold { get; set; }
 }

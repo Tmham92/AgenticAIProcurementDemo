@@ -60,7 +60,7 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
             var plan = ToAgentPlan(result, userRequest);
             if (plan is not null && plan.Tasks.Count > 0)
             {
-                return plan;
+                return EnsureMandatoryAgents(plan);
             }
 
             _logger.LogWarning("LLM planning response contained no valid tasks. Falling back to heuristic planning.");
@@ -70,7 +70,63 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
             _logger.LogError(ex, "LLM planning failed. Falling back to heuristic planning.");
         }
 
-        return FallbackPlan(userRequest);
+        return EnsureMandatoryAgents(FallbackPlan(userRequest));
+    }
+
+    /// <summary>
+    /// Guarantees that, whenever a plan analyzes a new procurement request (i.e. it includes
+    /// RequestAnalysisAgent), PolicyAgent and ComplianceAgent are also present and correctly
+    /// ordered. Without this, the LLM planner (or the heuristic fallback's rejection-question
+    /// path) can produce a plan that never runs ComplianceAgent, leaving ComplianceScoreResult
+    /// absent from working memory - which would otherwise silently default to a misleadingly
+    /// compliant score (100/High) instead of reflecting an actual evaluation.
+    /// </summary>
+    private static AgentPlan EnsureMandatoryAgents(AgentPlan plan)
+    {
+        var agentNames = plan.Tasks.Select(t => t.AgentName).ToHashSet();
+        if (!agentNames.Contains("RequestAnalysisAgent"))
+        {
+            // Not a new-request flow (e.g. a historical/governance question) - no mandatory
+            // compliance evaluation is required.
+            return plan;
+        }
+
+        var requestAnalysisPriority = plan.Tasks.First(t => t.AgentName == "RequestAnalysisAgent").Priority;
+
+        if (!agentNames.Contains("PolicyAgent"))
+        {
+            plan.Tasks.Add(new PlannedTask
+            {
+                AgentName = "PolicyAgent",
+                Reason = "Automatically added: ComplianceAgent requires policy data to evaluate compliance.",
+                Priority = requestAnalysisPriority + 1
+            });
+        }
+
+        if (!agentNames.Contains("ComplianceAgent"))
+        {
+            var policyPriority = plan.Tasks.First(t => t.AgentName == "PolicyAgent").Priority;
+            plan.Tasks.Add(new PlannedTask
+            {
+                AgentName = "ComplianceAgent",
+                Reason = "Automatically added: compliance score/risk evaluation is mandatory for every procurement request.",
+                Priority = policyPriority + 1
+            });
+        }
+
+        // Renumber priorities sequentially so the newly inserted agents sort correctly
+        // relative to any agents that were already planned after them (e.g. ProcOpsDependencyAgent,
+        // RecommendationAgent), while preserving relative order.
+        plan.Tasks = plan.Tasks
+            .OrderBy(t => t.Priority)
+            .Select((task, index) =>
+            {
+                task.Priority = index + 1;
+                return task;
+            })
+            .ToList();
+
+        return plan;
     }
 
     private static AgentPlan ToAgentPlan(PlanResult result, string userRequest)
@@ -80,7 +136,7 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
             Goal = string.IsNullOrWhiteSpace(result.Goal) ? userRequest : result.Goal
         };
 
-        foreach (var task in result.Tasks ?? new List<PlanTaskResult>())
+        foreach (var task in result.Tasks ?? [])
         {
             if (string.IsNullOrWhiteSpace(task.AgentName) || !AvailableAgents.Contains(task.AgentName))
             {

@@ -10,6 +10,6 @@ public class AgentExecutionResult
     public bool Success { get; set; }
     public string Summary { get; set; } = string.Empty;
     public bool HumanInterventionRequired { get; set; }
-    public List<ExecutionStep> Steps { get; set; } = new();
-    public Dictionary<string, object> Outputs { get; set; } = new();
+    public List<ExecutionStep> Steps { get; set; } = [];
+    public Dictionary<string, object> Outputs { get; set; } = [];
 }

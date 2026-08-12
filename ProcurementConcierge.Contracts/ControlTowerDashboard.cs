@@ -12,7 +12,7 @@ public class ControlTowerDashboard
     public int ProcOpsDependencyScore { get; set; }
     public int PolicyDeviationCount { get; set; }
 
-    public List<string> TopRisks { get; set; } = new();
-    public List<string> TopInsights { get; set; } = new();
-    public List<string> RecommendedActions { get; set; } = new();
+    public List<string> TopRisks { get; set; } = [];
+    public List<string> TopInsights { get; set; } = [];
+    public List<string> RecommendedActions { get; set; } = [];
 }

@@ -19,7 +19,6 @@ public class ProcurementCoachingAssessment
     /// </summary>
     public int ProcurementReadinessScore { get; set; }
 
-    public List<string> MissingInformation { get; set; } = new();
-    public List<string> ImprovementSuggestions { get; set; } = new();
-    public string SuggestedRequest { get; set; } = string.Empty;
+    public List<string> MissingInformation { get; set; } = [];
+    public List<string> ImprovementSuggestions { get; set; } = [];
 }

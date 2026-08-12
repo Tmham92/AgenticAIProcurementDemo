@@ -12,8 +12,8 @@ public class AgentRunContext
 {
     public Guid ExecutionId { get; init; } = Guid.NewGuid();
     public AgentGoal Goal { get; init; } = new();
-    public List<ExecutionStep> Steps { get; } = new();
-    public Dictionary<string, object> WorkingMemory { get; } = new();
+    public List<ExecutionStep> Steps { get; } = [];
+    public Dictionary<string, object> WorkingMemory { get; } = [];
 
     public void AddStep(int stepNumber, string agentName, string reason, string outcome)
     {

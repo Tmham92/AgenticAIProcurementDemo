@@ -6,14 +6,14 @@ namespace ProcurementConcierge.Api.Models;
 /// </summary>
 public class ExecutiveInsights
 {
-    public List<string> TopFindings { get; set; } = new();
+    public List<string> TopFindings { get; set; } = [];
 
     /// <summary>
     /// LLM-generated narrative summary of the findings, written as a CPO briefing.
     /// </summary>
     public string ExecutiveSummary { get; set; } = string.Empty;
 
-    public List<string> TopRisks { get; set; } = new();
-    public List<string> TopOpportunities { get; set; } = new();
-    public List<string> RecommendedActions { get; set; } = new();
+    public List<string> TopRisks { get; set; } = [];
+    public List<string> TopOpportunities { get; set; } = [];
+    public List<string> RecommendedActions { get; set; } = [];
 }

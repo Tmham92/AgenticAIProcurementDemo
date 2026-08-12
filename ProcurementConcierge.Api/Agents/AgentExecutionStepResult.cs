@@ -9,5 +9,5 @@ public class AgentExecutionStepResult
 {
     public bool Success { get; set; }
     public string Summary { get; set; } = string.Empty;
-    public Dictionary<string, object> Outputs { get; set; } = new();
+    public Dictionary<string, object> Outputs { get; set; } = [];
 }

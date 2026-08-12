@@ -24,7 +24,7 @@ public class ComplianceAgent(
             ?? throw new InvalidOperationException($"{nameof(ComplianceAgent)} requires {MemoryKeys.Analysis} in working memory.");
         var policy = context.GetMemory<ProcurementPolicy>(MemoryKeys.Policy);
         var countryRule = context.GetMemory<CountryRule>(MemoryKeys.CountryRule);
-        var deviations = context.GetMemory<List<PolicyDeviationDetail>>(MemoryKeys.PolicyDeviations) ?? new();
+        var deviations = context.GetMemory<List<PolicyDeviationDetail>>(MemoryKeys.PolicyDeviations) ?? [];
 
         var evaluation = _complianceService.Evaluate(analysis, policy, countryRule);
         context.SetMemory(MemoryKeys.ComplianceEvaluation, evaluation);

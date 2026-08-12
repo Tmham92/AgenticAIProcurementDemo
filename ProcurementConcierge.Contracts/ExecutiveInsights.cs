@@ -6,5 +6,5 @@ namespace ProcurementConcierge.Contracts;
 /// </summary>
 public class ExecutiveInsights
 {
-    public List<string> TopFindings { get; set; } = new();
+    public List<string> TopFindings { get; set; } = [];
 }

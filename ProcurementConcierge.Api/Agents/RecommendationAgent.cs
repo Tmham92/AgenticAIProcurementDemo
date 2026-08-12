@@ -5,17 +5,16 @@ using ProcurementConcierge.Contracts;
 namespace ProcurementConcierge.Api.Agents;
 
 /// <summary>
-/// Wraps <see cref="IRecommendationService"/> as a plannable agent: builds the final
-/// procurement guidance narrative and recommended next action from everything gathered
-/// so far in working memory.
+/// Wraps <see cref="IAdoptionGuidanceService"/> as a plannable agent: builds the final
+/// ultra-short Coupa adoption guidance from everything gathered so far in working memory.
 /// </summary>
-public class RecommendationAgent(IRecommendationService recommendationService) : IAgent
+public class RecommendationAgent(IAdoptionGuidanceService adoptionGuidanceService) : IAgent
 {
-    private readonly IRecommendationService _recommendationService = recommendationService;
+    private readonly IAdoptionGuidanceService _adoptionGuidanceService = adoptionGuidanceService;
 
     public string Name => nameof(RecommendationAgent);
 
-    public Task<AgentExecutionStepResult> ExecuteAsync(AgentRunContext context)
+    public async Task<AgentExecutionStepResult> ExecuteAsync(AgentRunContext context)
     {
         var analysis = context.GetMemory<ProcurementAnalysis>(MemoryKeys.Analysis)
             ?? throw new InvalidOperationException($"{nameof(RecommendationAgent)} requires {MemoryKeys.Analysis} in working memory.");
@@ -23,20 +22,26 @@ public class RecommendationAgent(IRecommendationService recommendationService) :
         var countryRule = context.GetMemory<CountryRule>(MemoryKeys.CountryRule);
         var evaluation = context.GetMemory<ComplianceEvaluation>(MemoryKeys.ComplianceEvaluation)
             ?? new ComplianceEvaluation();
+        var scoreResult = context.GetMemory<ComplianceScoreResult>(MemoryKeys.ComplianceScoreResult)
+            ?? new ComplianceScoreResult();
 
-        var (recommendation, recommendedNextAction) = _recommendationService.BuildGuidance(analysis, policy, countryRule, evaluation);
-        context.SetMemory(MemoryKeys.Recommendation, recommendation);
-        context.SetMemory(MemoryKeys.RecommendedNextAction, recommendedNextAction);
+        var guidance = await _adoptionGuidanceService.BuildGuidanceAsync(
+            analysis, policy, countryRule, evaluation, scoreResult.Score);
 
-        return Task.FromResult(new AgentExecutionStepResult
+        context.SetMemory(MemoryKeys.UserGuidance, guidance);
+        context.SetMemory(MemoryKeys.Recommendation, guidance.Status);
+        context.SetMemory(MemoryKeys.RecommendedNextAction, guidance.NextAction);
+
+        return new AgentExecutionStepResult
         {
             Success = true,
-            Summary = recommendedNextAction,
+            Summary = guidance.NextAction,
             Outputs =
             {
-                [MemoryKeys.Recommendation] = recommendation,
-                [MemoryKeys.RecommendedNextAction] = recommendedNextAction
+                [MemoryKeys.UserGuidance] = guidance,
+                [MemoryKeys.Recommendation] = guidance.Status,
+                [MemoryKeys.RecommendedNextAction] = guidance.NextAction
             }
-        });
+        };
     }
 }

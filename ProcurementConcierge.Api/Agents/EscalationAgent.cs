@@ -20,7 +20,7 @@ public class EscalationAgent : IEscalationAgent
     {
         var analysis = context.GetMemory<ProcurementAnalysis>(MemoryKeys.Analysis);
         var scoreResult = context.GetMemory<ComplianceScoreResult>(MemoryKeys.ComplianceScoreResult);
-        var deviations = context.GetMemory<List<PolicyDeviationDetail>>(MemoryKeys.PolicyDeviations) ?? new();
+        var deviations = context.GetMemory<List<PolicyDeviationDetail>>(MemoryKeys.PolicyDeviations) ?? [];
 
         var score = scoreResult?.Score ?? 100;
 

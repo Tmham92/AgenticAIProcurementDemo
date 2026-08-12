@@ -16,6 +16,6 @@ public class InteractionRecord
     public int ComplianceScore { get; set; }
     public string ComplianceLevel { get; set; } = string.Empty;
     public bool PolicyDeviation { get; set; }
-    public List<string> DeviationTypes { get; set; } = new();
+    public List<string> DeviationTypes { get; set; } = [];
     public string Recommendation { get; set; } = string.Empty;
 }

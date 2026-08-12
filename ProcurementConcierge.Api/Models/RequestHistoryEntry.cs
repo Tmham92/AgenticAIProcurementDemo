@@ -14,5 +14,5 @@ public class RequestHistoryEntry
     public string Country { get; set; } = string.Empty;
     public int ComplianceScore { get; set; }
     public string ComplianceLevel { get; set; } = string.Empty;
-    public List<PolicyDeviationDetail> Deviations { get; set; } = new();
+    public List<PolicyDeviationDetail> Deviations { get; set; } = [];
 }

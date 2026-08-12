@@ -7,11 +7,11 @@ namespace ProcurementConcierge.Api.Models;
 public class AdoptionInsights
 {
     public int TotalRequests { get; set; }
-    public Dictionary<string, int> RequestsPerCountry { get; set; } = new();
-    public Dictionary<string, int> RequestsPerCategory { get; set; } = new();
-    public Dictionary<string, int> MostCommonDeviations { get; set; } = new();
+    public Dictionary<string, int> RequestsPerCountry { get; set; } = [];
+    public Dictionary<string, int> RequestsPerCategory { get; set; } = [];
+    public Dictionary<string, int> MostCommonDeviations { get; set; } = [];
     public int UnknownCategoryCount { get; set; }
-    public List<ComplianceTrendPoint> ComplianceTrend { get; set; } = new();
+    public List<ComplianceTrendPoint> ComplianceTrend { get; set; } = [];
 }
 
 /// <summary>

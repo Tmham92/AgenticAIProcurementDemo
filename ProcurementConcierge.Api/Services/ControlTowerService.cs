@@ -32,7 +32,7 @@ public class ControlTowerService(
         var dashboard = new ControlTowerDashboard
         {
             TopInsights = executiveInsights.TopFindings,
-            RecommendedActions = new List<string>()
+            RecommendedActions = []
         };
 
         if (records.Count == 0)

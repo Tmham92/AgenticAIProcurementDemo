@@ -7,7 +7,7 @@ namespace ProcurementConcierge.Contracts;
 /// </summary>
 public class CoupaSimulationResult
 {
-    public List<Supplier> PreferredSuppliers { get; set; } = new();
+    public List<Supplier> PreferredSuppliers { get; set; } = [];
     public Requisition DraftRequisition { get; set; } = new();
-    public List<Approval> ApprovalRoute { get; set; } = new();
+    public List<Approval> ApprovalRoute { get; set; } = [];
 }

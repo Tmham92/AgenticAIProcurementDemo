@@ -70,12 +70,13 @@ public class ProcurementConciergeService(
             ?? new ProcurementAnalysis { OriginalMessage = request.Message };
         var policy = GetOutput<ProcurementPolicy>(executionResult, MemoryKeys.Policy);
         var countryRule = GetOutput<CountryRule>(executionResult, MemoryKeys.CountryRule);
-        var deviations = GetOutput<List<PolicyDeviationDetail>>(executionResult, MemoryKeys.PolicyDeviations) ?? new();
+        var deviations = GetOutput<List<PolicyDeviationDetail>>(executionResult, MemoryKeys.PolicyDeviations) ?? [];
         var scoreResult = GetOutput<ComplianceScoreResult>(executionResult, MemoryKeys.ComplianceScoreResult) ?? new ComplianceScoreResult();
         var evaluation = GetOutput<ComplianceEvaluation>(executionResult, MemoryKeys.ComplianceEvaluation) ?? new ComplianceEvaluation();
         var procOpsAssessment = GetOutput<ProcOpsAssessment>(executionResult, MemoryKeys.ProcOpsAssessment) ?? new ProcOpsAssessment();
         var recommendation = GetOutput<string>(executionResult, MemoryKeys.Recommendation) ?? string.Empty;
         var nextAction = GetOutput<string>(executionResult, MemoryKeys.RecommendedNextAction) ?? string.Empty;
+        var guidance = GetOutput<UserGuidanceResponse>(executionResult, MemoryKeys.UserGuidance) ?? new UserGuidanceResponse();
         var escalation = GetOutput<EscalationDecision>(executionResult, nameof(EscalationDecision))
             ?? new EscalationDecision { Level = EscalationLevel.Automatic, Reason = "No escalation data available." };
 
@@ -101,7 +102,7 @@ public class ProcurementConciergeService(
         response.Category = analysis.Category;
         response.Country = analysis.Country;
         response.EstimatedSpend = analysis.EstimatedSpend;
-        response.PreferredSuppliers = policy?.PreferredSuppliers ?? new List<string>();
+        response.PreferredSuppliers = policy?.PreferredSuppliers ?? [];
         response.RequiredApproval = evaluation.RequiredApproval;
         response.ComplianceStatus = evaluation.ComplianceStatus;
         response.ComplianceRisk = evaluation.ComplianceRisk;
@@ -110,6 +111,7 @@ public class ProcurementConciergeService(
         response.CountryGuidance = countryRule?.Guidance ?? string.Empty;
         response.Recommendation = recommendation;
         response.RecommendedNextAction = nextAction;
+        response.Guidance = guidance;
 
         response.CategoryConfidence = analysis.CategoryConfidence;
         response.CountryConfidence = analysis.CountryConfidence;

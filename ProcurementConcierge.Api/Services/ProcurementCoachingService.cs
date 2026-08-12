@@ -22,9 +22,9 @@ public class ProcurementCoachingService(ILLMService llmService, ILogger<Procurem
     private const string SystemPrompt = """
         You are a procurement coach. Review a procurement request for completeness and clarity
         before it goes through policy and compliance evaluation. Identify missing information
-        (e.g. country, budget, business justification), score clarity and procurement readiness
-        from 0-100, provide actionable suggestions, and propose an improved example of the
-        request that includes the missing details.
+        (e.g. country, budget, business justification) and score clarity and procurement
+        readiness from 0-100, and provide short actionable suggestions. Do not rewrite the
+        request, generate procurement documents, or generate business justifications.
         """;
 
     public async Task<ProcurementCoachingAssessment> CoachAsync(ProcurementAnalysis analysis)
@@ -41,21 +41,36 @@ public class ProcurementCoachingService(ILLMService llmService, ILogger<Procurem
 
                 Return JSON with fields: requestQualityScore (0-100), clarityScore (0-100),
                 procurementReadinessScore (0-100), missingInformation (string array),
-                improvementSuggestions (string array), suggestedRequest (string, an improved
-                version of the request incorporating the missing details).
+                improvementSuggestions (string array). Do not rewrite the request or
+                generate a suggested/improved version of it.
                 """;
 
             var result = await _llmService.GenerateStructuredResponseAsync<CoachingResult>(SystemPrompt, userPrompt, ModelType.Coach);
 
-            return new ProcurementCoachingAssessment
+            var assessment = new ProcurementCoachingAssessment
             {
                 RequestQualityScore = Math.Clamp(result.RequestQualityScore, 0, 100),
                 ClarityScore = Math.Clamp(result.ClarityScore, 0, 100),
                 ProcurementReadinessScore = Math.Clamp(result.ProcurementReadinessScore, 0, 100),
-                MissingInformation = result.MissingInformation ?? new List<string>(),
-                ImprovementSuggestions = result.ImprovementSuggestions ?? new List<string>(),
-                SuggestedRequest = result.SuggestedRequest ?? string.Empty
+                MissingInformation = result.MissingInformation ?? [],
+                ImprovementSuggestions = result.ImprovementSuggestions ?? []
             };
+
+            // A low score with no missing information/suggestions means the LLM's response was
+            // unusable (not genuinely "everything is fine"), otherwise the UI would silently show
+            // an empty coaching card instead of actionable feedback. Fall back to the deterministic
+            // heuristic assessment in that case.
+            if (assessment.RequestQualityScore < 70
+                && assessment.MissingInformation.Count == 0
+                && assessment.ImprovementSuggestions.Count == 0)
+            {
+                _logger.LogWarning(
+                    "LLM coaching returned a low score ({Score}) with no missing information or suggestions. Falling back to heuristic coaching assessment.",
+                    assessment.RequestQualityScore);
+                return FallbackCoach(analysis);
+            }
+
+            return assessment;
         }
         catch (Exception ex)
         {
@@ -81,9 +96,6 @@ public class ProcurementCoachingService(ILLMService llmService, ILogger<Procurem
 
         [JsonPropertyName("improvementSuggestions")]
         public List<string>? ImprovementSuggestions { get; set; }
-
-        [JsonPropertyName("suggestedRequest")]
-        public string? SuggestedRequest { get; set; }
     }
 
     /// <summary>
@@ -143,27 +155,6 @@ public class ProcurementCoachingService(ILLMService llmService, ILogger<Procurem
             ImprovementSuggestions = suggestions
         };
 
-        if (score < 100)
-        {
-            assessment.SuggestedRequest = BuildSuggestedRequest(analysis, hasCountry, hasSpend, hasJustification);
-        }
-
         return assessment;
-    }
-
-    private static string BuildSuggestedRequest(
-        ProcurementAnalysis analysis, bool hasCountry, bool hasSpend, bool hasJustification)
-    {
-        var category = RequestQualityHeuristics.HasKnownCategory(analysis.Category)
-            ? analysis.Category
-            : "marketing agency";
-
-        var country = hasCountry ? analysis.Country : "France";
-        var spend = hasSpend ? analysis.EstimatedSpend.ToString("C") : "€80,000";
-        var justification = hasJustification
-            ? string.Empty
-            : " for a product launch campaign";
-
-        return $"I need a {category} in {country}{justification}. Estimated budget is {spend}.";
     }
 }

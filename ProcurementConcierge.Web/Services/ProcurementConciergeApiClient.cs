@@ -36,10 +36,10 @@ public class ProcurementConciergeApiClient(HttpClient httpClient, ILogger<Procur
         => await GetAsync<ExecutiveInsights>("api/dashboard/executive-insights");
 
     public async Task<List<InteractionRecord>> GetInteractionsAsync()
-        => await GetAsync<List<InteractionRecord>>("api/interactions") ?? new List<InteractionRecord>();
+        => await GetAsync<List<InteractionRecord>>("api/interactions") ?? [];
 
     public async Task<List<ProcessDiscoveryInsight>> GetProcessDiscoveryInsightsAsync()
-        => await GetAsync<List<ProcessDiscoveryInsight>>("api/process-discovery") ?? new List<ProcessDiscoveryInsight>();
+        => await GetAsync<List<ProcessDiscoveryInsight>>("api/process-discovery") ?? [];
 
     private async Task<T> GetAsync<T>(string requestUri) where T : new()
     {

@@ -97,12 +97,6 @@ public class RequestQualityService : IRequestQualityService
             ImprovementSuggestions = suggestions
         };
 
-        if (score < 70)
-        {
-            assessment.ExampleImprovedRequest = BuildExampleImprovedRequest(
-                analysis, policy, hasCategory, hasCountry, hasSpend, hasJustification, hasSupplierInformation);
-        }
-
         return assessment;
     }
 
@@ -115,30 +109,5 @@ public class RequestQualityService : IRequestQualityService
         }
 
         return RequestQualityHeuristics.HasSupplierKeywordMention(message);
-    }
-
-    private static string BuildExampleImprovedRequest(
-        ProcurementAnalysis analysis,
-        ProcurementPolicy? policy,
-        bool hasCategory,
-        bool hasCountry,
-        bool hasSpend,
-        bool hasJustification,
-        bool hasSupplierInformation)
-    {
-        var country = hasCountry ? analysis.Country : "[Country, e.g. France]";
-        var category = hasCategory ? analysis.Category : "[Category, e.g. Marketing Services]";
-        var spend = hasSpend ? analysis.EstimatedSpend.ToString("C") : "[Estimated budget, e.g. €50,000]";
-        var supplier = hasSupplierInformation
-            ? "our preferred supplier"
-            : policy is { PreferredSuppliers.Count: > 0 }
-                ? $"a preferred supplier such as {policy.PreferredSuppliers.First()}"
-                : "[preferred supplier name, if any]";
-        var justification = hasJustification
-            ? "to support an active business need"
-            : "[reason, e.g. 'because our current contract has expired']";
-
-        return $"I'm located in {country}. I need {category} {justification}. " +
-               $"Estimated budget is {spend}. We would like to use {supplier}.";
     }
 }

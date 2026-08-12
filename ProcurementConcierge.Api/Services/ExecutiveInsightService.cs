@@ -103,9 +103,9 @@ public class ExecutiveInsightService(
             var briefing = await _llmService.GenerateStructuredResponseAsync<BriefingResult>(SystemPrompt, userPrompt, ModelType.Insights);
 
             insights.ExecutiveSummary = briefing.ExecutiveSummary ?? string.Empty;
-            insights.TopRisks = briefing.TopRisks ?? new List<string>();
-            insights.TopOpportunities = briefing.TopOpportunities ?? new List<string>();
-            insights.RecommendedActions = briefing.RecommendedActions ?? new List<string>();
+            insights.TopRisks = briefing.TopRisks ?? [];
+            insights.TopOpportunities = briefing.TopOpportunities ?? [];
+            insights.RecommendedActions = briefing.RecommendedActions ?? [];
         }
         catch (Exception ex)
         {

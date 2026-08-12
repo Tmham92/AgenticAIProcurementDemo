@@ -33,13 +33,13 @@ public class PolicyService(ILogger<PolicyService> logger, IWebHostEnvironment en
                 if (!File.Exists(_policiesFilePath))
                 {
                     _logger.LogWarning("Policies file not found at {Path}. Returning empty policy list.", _policiesFilePath);
-                    _cachedPolicies = new List<ProcurementPolicy>();
+                    _cachedPolicies = [];
                 }
                 else
                 {
                     var json = await File.ReadAllTextAsync(_policiesFilePath);
                     _cachedPolicies = JsonSerializer.Deserialize<List<ProcurementPolicy>>(json, JsonOptions)
-                                       ?? new List<ProcurementPolicy>();
+                                       ?? [];
                 }
             }
         }
