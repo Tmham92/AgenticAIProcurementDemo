@@ -17,5 +17,8 @@ public enum ModelType
     Coach,
 
     /// <summary>Used by executive insight/briefing generation (<see cref="Services.ExecutiveInsightService"/>).</summary>
-    Insights
+    Insights,
+
+    /// <summary>Used by the Control Tower Chat Agent (<see cref="Services.ControlTowerChatAgent"/>).</summary>
+    ControlTowerChat
 }

@@ -29,4 +29,11 @@ public class UserGuidanceResponse
 
     /// <summary>Deterministic friction classification driving the UI badge color.</summary>
     public GuidanceLevel GuidanceLevel { get; set; }
+
+    /// <summary>
+    /// Concise references (e.g. "Country Procedure: EMEA Travel SOP") to the most relevant
+    /// procurement documentation retrieved by the KnowledgeAgent, if any. Kept short and
+    /// optional so it does not dilute the ultra-short guidance above.
+    /// </summary>
+    public List<string> KnowledgeReferences { get; set; } = [];
 }

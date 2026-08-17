@@ -19,4 +19,10 @@ public interface IProcurementConciergeApiClient
     Task<List<InteractionRecord>> GetInteractionsAsync();
 
     Task<List<ProcessDiscoveryInsight>> GetProcessDiscoveryInsightsAsync();
+
+    Task<List<AdoptionFinding>> GetAdoptionFindingsAsync();
+
+    Task<ControlTowerAnswer> AskControlTowerAsync(ControlTowerQuestion question);
+
+    Task<List<ControlTowerConversationEntry>> GetControlTowerHistoryAsync();
 }

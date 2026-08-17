@@ -23,6 +23,7 @@ public class OllamaSettings
     public string? PlannerModel { get; set; }
     public string? InsightModel { get; set; }
     public string? CoachingModel { get; set; }
+    public string? ControlTowerChatModel { get; set; }
 
     /// <summary>
     /// Optional API key used to authenticate with Ollama when using cloud-hosted models

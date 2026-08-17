@@ -15,4 +15,10 @@ public class ControlTowerDashboard
     public List<string> TopRisks { get; set; } = [];
     public List<string> TopInsights { get; set; } = [];
     public List<string> RecommendedActions { get; set; } = [];
+
+    /// <summary>
+    /// Structured, severity-ranked adoption problems identified by the Adoption
+    /// Intelligence Agent, ordered by severity descending (most severe first).
+    /// </summary>
+    public List<AdoptionFinding> AdoptionFindings { get; set; } = [];
 }

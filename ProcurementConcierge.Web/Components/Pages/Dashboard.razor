@@ -119,6 +119,46 @@ else
 
         <div class="col-12">
             <div class="card">
+                <div class="card-header">Adoption Intelligence Findings</div>
+                <div class="card-body">
+                    @if (_adoptionFindings.Count > 0)
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Country</th>
+                                    <th>Finding</th>
+                                    <th>Impact</th>
+                                    <th>Recommendation</th>
+                                    <th>Severity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var finding in _adoptionFindings)
+                                {
+                                    <tr>
+                                        <td>@finding.Category</td>
+                                        <td>@finding.Country</td>
+                                        <td>@finding.Finding</td>
+                                        <td>@finding.Impact</td>
+                                        <td>@finding.Recommendation</td>
+                                        <td>@finding.Severity</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No adoption problems detected yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
                 <div class="card-header">Process Discovery Insights</div>
                 <div class="card-body">
                     @if (_processDiscoveryInsights.Count > 0)
@@ -199,16 +239,33 @@ else
     private ExecutiveInsights? _executiveInsights;
     private List<InteractionRecord> _interactions = new();
     private List<ProcessDiscoveryInsight> _processDiscoveryInsights = new();
+    private List<AdoptionFinding> _adoptionFindings = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _adoptionInsights = await ApiClient.GetAdoptionInsightsAsync();
-            _complianceInsights = await ApiClient.GetComplianceInsightsAsync();
-            _executiveInsights = await ApiClient.GetExecutiveInsightsAsync();
-            _interactions = await ApiClient.GetInteractionsAsync();
-            _processDiscoveryInsights = await ApiClient.GetProcessDiscoveryInsightsAsync();
+            var adoptionInsightsTask = ApiClient.GetAdoptionInsightsAsync();
+            var complianceInsightsTask = ApiClient.GetComplianceInsightsAsync();
+            var executiveInsightsTask = ApiClient.GetExecutiveInsightsAsync();
+            var interactionsTask = ApiClient.GetInteractionsAsync();
+            var processDiscoveryInsightsTask = ApiClient.GetProcessDiscoveryInsightsAsync();
+            var adoptionFindingsTask = ApiClient.GetAdoptionFindingsAsync();
+
+            await Task.WhenAll(
+                adoptionInsightsTask,
+                complianceInsightsTask,
+                executiveInsightsTask,
+                interactionsTask,
+                processDiscoveryInsightsTask,
+                adoptionFindingsTask);
+
+            _adoptionInsights = await adoptionInsightsTask;
+            _complianceInsights = await complianceInsightsTask;
+            _executiveInsights = await executiveInsightsTask;
+            _interactions = await interactionsTask;
+            _processDiscoveryInsights = await processDiscoveryInsightsTask;
+            _adoptionFindings = await adoptionFindingsTask;
         }
         catch (Exception ex)
         {

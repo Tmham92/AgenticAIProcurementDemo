@@ -14,6 +14,10 @@ const string WebClientCorsPolicy = "WebClient";
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+// Backs the short-lived interaction-history cache used by InteractionLoggingService so that
+// dashboard-style pages fanning out multiple insight requests share a single DB round-trip.
+builder.Services.AddMemoryCache();
+
 // Allow the separate Blazor Web frontend project to call this API during local development.
 builder.Services.AddCors(options =>
 {
@@ -99,6 +103,11 @@ builder.Services.AddScoped<IProcurementCoachingService, ProcurementCoachingServi
 builder.Services.AddScoped<ICountryGovernanceService, CountryGovernanceService>();
 builder.Services.AddScoped<IControlTowerService, ControlTowerService>();
 builder.Services.AddScoped<IControlTowerAgentService, ControlTowerAgentService>();
+builder.Services.AddScoped<IControlTowerContextBuilder, ControlTowerContextBuilder>();
+builder.Services.AddScoped<IControlTowerChatAgent, ControlTowerChatAgent>();
+builder.Services.AddScoped<IAdoptionIntelligenceService, AdoptionIntelligenceService>();
+builder.Services.AddScoped<IKnowledgeStore, KnowledgeStore>();
+builder.Services.AddScoped<IKnowledgeRetrievalService, KnowledgeRetrievalService>();
 builder.Services.AddSingleton<ICoupaSimulationService, CoupaSimulationService>();
 builder.Services.AddSingleton<IClarificationService, ClarificationService>();
 builder.Services.AddScoped<IOrganizationalMemoryService, OrganizationalMemoryService>();
@@ -119,6 +128,8 @@ builder.Services.AddScoped<IAgent, ProcessDiscoveryAgent>();
 builder.Services.AddScoped<IAgent, GovernanceAgent>();
 builder.Services.AddScoped<IAgent, OrganizationalMemoryAgent>();
 builder.Services.AddScoped<IAgent, ClarificationAgent>();
+builder.Services.AddScoped<IAgent, AdoptionIntelligenceAgent>();
+builder.Services.AddScoped<IAgent, KnowledgeAgent>();
 
 // Future extension point: register additional IProcurementAgent implementations here, e.g.:
 // builder.Services.AddScoped<IProcurementAgent, ComplianceAgent>();

@@ -41,6 +41,27 @@ public class ProcurementConciergeApiClient(HttpClient httpClient, ILogger<Procur
     public async Task<List<ProcessDiscoveryInsight>> GetProcessDiscoveryInsightsAsync()
         => await GetAsync<List<ProcessDiscoveryInsight>>("api/process-discovery") ?? [];
 
+    public async Task<List<AdoptionFinding>> GetAdoptionFindingsAsync()
+        => await GetAsync<List<AdoptionFinding>>("api/adoption-intelligence") ?? [];
+
+    public async Task<ControlTowerAnswer> AskControlTowerAsync(ControlTowerQuestion question)
+    {
+        var httpResponse = await _httpClient.PostAsJsonAsync("api/controltower/chat", question);
+        httpResponse.EnsureSuccessStatusCode();
+
+        var response = await httpResponse.Content.ReadFromJsonAsync<ControlTowerAnswer>();
+        if (response is null)
+        {
+            _logger.LogError("Control Tower Chat API returned an empty response.");
+            throw new InvalidOperationException("Control Tower Chat API returned an empty response.");
+        }
+
+        return response;
+    }
+
+    public async Task<List<ControlTowerConversationEntry>> GetControlTowerHistoryAsync()
+        => await GetAsync<List<ControlTowerConversationEntry>>("api/controltower/chat/history") ?? [];
+
     private async Task<T> GetAsync<T>(string requestUri) where T : new()
     {
         var httpResponse = await _httpClient.GetAsync(requestUri);

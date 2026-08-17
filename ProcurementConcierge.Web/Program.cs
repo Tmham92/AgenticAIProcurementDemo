@@ -14,15 +14,6 @@ var apiBaseAddress = builder.Configuration["ProcurementConciergeApi:BaseAddress"
 builder.Services.AddHttpClient<IProcurementConciergeApiClient, ProcurementConciergeApiClient>(client =>
 {
     client.BaseAddress = new Uri(apiBaseAddress);
-
-    // A single procurement request can chain several sequential local-LLM calls
-    // (request analysis, planning, reflection, coaching, recommendation, executive
-    // insights), each of which can take 20-30+ seconds against a local Ollama model.
-    // The default HttpClient timeout (100s) is easily exceeded, causing the request to
-    // be silently cancelled and nothing to render. Match/exceed the API's own LLM call
-    // timeout (120s, see ProcurementConcierge.Api/Program.cs) with headroom for multiple
-    // sequential calls in a single request.
-    client.Timeout = TimeSpan.FromMinutes(5);
 });
 
 var app = builder.Build();

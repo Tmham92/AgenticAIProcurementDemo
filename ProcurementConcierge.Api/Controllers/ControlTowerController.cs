@@ -13,10 +13,12 @@ namespace ProcurementConcierge.Api.Controllers;
 [Route("api/controltower")]
 public class ControlTowerController(
     IControlTowerService controlTowerService,
-    IControlTowerAgentService controlTowerAgentService) : ControllerBase
+    IControlTowerAgentService controlTowerAgentService,
+    IControlTowerChatAgent controlTowerChatAgent) : ControllerBase
 {
     private readonly IControlTowerService _controlTowerService = controlTowerService;
     private readonly IControlTowerAgentService _controlTowerAgentService = controlTowerAgentService;
+    private readonly IControlTowerChatAgent _controlTowerChatAgent = controlTowerChatAgent;
 
     [HttpGet]
     [ProducesResponseType(typeof(ControlTowerDashboard), StatusCodes.Status200OK)]
@@ -36,4 +38,41 @@ public class ControlTowerController(
     {
         return Ok(await _controlTowerAgentService.GetRecommendationsAsync());
     }
+
+    /// <summary>
+    /// Allows procurement leadership to ask a natural language question about adoption,
+    /// governance, compliance, or process performance, grounded in real organizational data.
+    /// </summary>
+    [HttpPost("chat")]
+    [ProducesResponseType(typeof(ControlTowerAnswer), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ControlTowerAnswer>> Chat([FromBody] ControlTowerQuestion request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Question))
+        {
+            return BadRequest("Question must not be empty.");
+        }
+
+        var answer = await _controlTowerChatAgent.AskAsync(request.Question);
+        return Ok(answer);
+    }
+
+    /// <summary>
+    /// Returns persisted Control Tower Chat conversation history, most recent first.
+    /// </summary>
+    [HttpGet("chat/history")]
+    [ProducesResponseType(typeof(List<ControlTowerConversationEntry>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<ControlTowerConversationEntry>>> GetChatHistory()
+    {
+        var history = await _controlTowerChatAgent.GetHistoryAsync();
+        var entries = history.Select(c => new ControlTowerConversationEntry
+        {
+            Id = c.Id,
+            Question = c.Question,
+            Answer = c.Answer,
+            Timestamp = c.Timestamp
+        }).ToList();
+
+        return Ok(entries);
+    }
 }
+

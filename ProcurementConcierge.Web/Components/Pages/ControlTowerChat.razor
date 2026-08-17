@@ -1,0 +1,208 @@
+@page "/control-tower-chat"
+@using ProcurementConcierge.Contracts
+@inject IProcurementConciergeApiClient ApiClient
+
+<PageTitle>Control Tower Chat</PageTitle>
+
+<h2 class="mb-1">Control Tower Chat</h2>
+<p class="text-muted">Ask procurement leadership questions in natural language - answers are grounded in Adoption Intelligence, Compliance Insights, Country Governance, Process Discovery, and Executive Insights.</p>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-dark text-white">Conversation</div>
+            <div class="card-body" style="max-height: 60vh; overflow-y: auto;">
+                @if (_historyLoading)
+                {
+                    <div class="alert alert-info">Loading conversation history...</div>
+                }
+                else if (_conversation.Count == 0)
+                {
+                    <p class="text-muted mb-0">No questions asked yet. Try one of the suggested questions to get started.</p>
+                }
+                else
+                {
+                    @foreach (var turn in _conversation)
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-end mb-2">
+                                <div class="bg-primary text-white rounded p-2" style="max-width: 80%;">
+                                    <strong>You:</strong> @turn.Question
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-start">
+                                <div class="bg-light border rounded p-2" style="max-width: 80%;">
+                                    <strong>Chief Procurement Advisor:</strong>
+                                    <p class="mb-0">@turn.Answer</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+
+                @if (_asking)
+                {
+                    <div class="alert alert-info">Thinking...</div>
+                }
+
+                @if (_error is not null)
+                {
+                    <div class="alert alert-danger">@_error</div>
+                }
+            </div>
+            <div class="card-footer">
+                <form @onsubmit="AskAsync" @onsubmit:preventDefault="true">
+                    <div class="input-group">
+                        <input class="form-control" placeholder="Ask a procurement question..." @bind="_question" @bind:event="oninput" disabled="@_asking" />
+                        <button class="btn btn-primary" type="submit" disabled="@(_asking || string.IsNullOrWhiteSpace(_question))">Ask</button>
+                    </div>
+                </form>
+
+                <div class="mt-3">
+                    <small class="text-muted d-block mb-1">Suggested questions:</small>
+                    @foreach (var suggestion in SuggestedQuestions)
+                    {
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-2 mb-2" disabled="@_asking" @onclick="() => AskSuggestedAsync(suggestion)">
+                            @suggestion
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">Confidence Score</div>
+            <div class="card-body">
+                @if (_lastAnswer is not null)
+                {
+                    <div class="progress" style="height: 24px;">
+                        <div class="progress-bar @ConfidenceBarClass(_lastAnswer.ConfidenceScore)" role="progressbar" style="width: @(_lastAnswer.ConfidenceScore)%;">
+                            @_lastAnswer.ConfidenceScore%
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">Ask a question to see the confidence score.</p>
+                }
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Supporting Insights</div>
+            <div class="card-body">
+                @if (_lastAnswer is { SupportingInsights.Count: > 0 })
+                {
+                    <ul class="mb-0 ps-3">
+                        @foreach (var insight in _lastAnswer.SupportingInsights)
+                        {
+                            <li><strong>@insight.Source:</strong> @insight.Finding</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No supporting insights yet.</p>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Recommended Actions</div>
+            <div class="card-body">
+                @if (_lastAnswer is { RecommendedActions.Count: > 0 })
+                {
+                    <ul class="mb-0 ps-3">
+                        @foreach (var action in _lastAnswer.RecommendedActions)
+                        {
+                            <li>@action</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No recommended actions yet.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly string[] SuggestedQuestions =
+    [
+        "Why is compliance decreasing?",
+        "Where are procurement bottlenecks?",
+        "Which country has highest risk?",
+        "What drives ProcOps workload?"
+    ];
+
+    private readonly List<(string Question, string Answer)> _conversation = [];
+    private string _question = string.Empty;
+    private bool _asking;
+    private bool _historyLoading = true;
+    private string? _error;
+    private ControlTowerAnswer? _lastAnswer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var history = await ApiClient.GetControlTowerHistoryAsync();
+            _conversation.AddRange(history
+                .OrderBy(h => h.Timestamp)
+                .Select(h => (h.Question, h.Answer)));
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load conversation history: {ex.Message}";
+        }
+        finally
+        {
+            _historyLoading = false;
+        }
+    }
+
+    private async Task AskSuggestedAsync(string suggestion)
+    {
+        _question = suggestion;
+        await AskAsync();
+    }
+
+    private async Task AskAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_question) || _asking)
+        {
+            return;
+        }
+
+        var question = _question;
+        _question = string.Empty;
+        _asking = true;
+        _error = null;
+
+        try
+        {
+            var answer = await ApiClient.AskControlTowerAsync(new ControlTowerQuestion { Question = question });
+            _conversation.Add((question, answer.Answer));
+            _lastAnswer = answer;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to get an answer: {ex.Message}";
+        }
+        finally
+        {
+            _asking = false;
+        }
+    }
+
+    private static string ConfidenceBarClass(int score) => score switch
+    {
+        >= 70 => "bg-success",
+        >= 40 => "bg-warning",
+        _ => "bg-danger"
+    };
+}

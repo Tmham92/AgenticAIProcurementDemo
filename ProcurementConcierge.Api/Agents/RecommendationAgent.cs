@@ -25,11 +25,13 @@ public class RecommendationAgent(IAdoptionGuidanceService adoptionGuidanceServic
         var scoreResult = context.GetMemory<ComplianceScoreResult>(MemoryKeys.ComplianceScoreResult)
             ?? new ComplianceScoreResult();
         var organizationalInsight = context.GetMemory<OrganizationalMemoryInsight>(MemoryKeys.OrganizationalMemoryInsight);
+        var knowledgeDocuments = context.GetMemory<List<KnowledgeDocument>>(MemoryKeys.KnowledgeDocuments) ?? [];
 
         var guidance = await _adoptionGuidanceService.BuildGuidanceAsync(
             analysis, policy, countryRule, evaluation, scoreResult.Score);
 
         ApplyOrganizationalInsight(guidance, organizationalInsight);
+        ApplyKnowledgeReferences(guidance, knowledgeDocuments);
 
         context.SetMemory(MemoryKeys.UserGuidance, guidance);
         context.SetMemory(MemoryKeys.Recommendation, guidance.Status);
@@ -87,5 +89,23 @@ public class RecommendationAgent(IAdoptionGuidanceService adoptionGuidanceServic
         guidance.Tip = string.IsNullOrWhiteSpace(guidance.Tip)
             ? organizationalTip
             : $"{guidance.Tip} {organizationalTip}";
+    }
+
+    /// <summary>
+    /// Surfaces the most relevant retrieved procurement documentation (policy guidance,
+    /// procedural guidance, document references) as concise references, without expanding
+    /// the ultra-short Status/NextAction/Approval/Tip fields.
+    /// </summary>
+    private static void ApplyKnowledgeReferences(UserGuidanceResponse guidance, List<KnowledgeDocument> documents)
+    {
+        if (documents.Count == 0)
+        {
+            return;
+        }
+
+        guidance.KnowledgeReferences = documents
+            .Take(3)
+            .Select(d => $"{d.Category}: {d.Title} ({d.Source})")
+            .ToList();
     }
 }

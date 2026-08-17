@@ -13,7 +13,8 @@ public class ControlTowerService(
     IInteractionLoggingService interactionLoggingService,
     IProcessDiscoveryService processDiscoveryService,
     IExecutiveInsightService executiveInsightService,
-    IProcOpsDependencyService procOpsDependencyService) : IControlTowerService
+    IProcOpsDependencyService procOpsDependencyService,
+    IAdoptionIntelligenceService adoptionIntelligenceService) : IControlTowerService
 {
     private const int LowComplianceThreshold = 60;
 
@@ -21,6 +22,7 @@ public class ControlTowerService(
     private readonly IProcessDiscoveryService _processDiscoveryService = processDiscoveryService;
     private readonly IExecutiveInsightService _executiveInsightService = executiveInsightService;
     private readonly IProcOpsDependencyService _procOpsDependencyService = procOpsDependencyService;
+    private readonly IAdoptionIntelligenceService _adoptionIntelligenceService = adoptionIntelligenceService;
 
     public async Task<ControlTowerDashboard> GetDashboardAsync()
     {
@@ -28,11 +30,13 @@ public class ControlTowerService(
         var executiveInsights = await _executiveInsightService.GetInsightsAsync();
         var procOpsMetrics = await _procOpsDependencyService.GetMetricsAsync();
         var processDiscoveryFindings = _processDiscoveryService.DiscoverFindings();
+        var adoptionFindings = await _adoptionIntelligenceService.GetFindingsAsync();
 
         var dashboard = new ControlTowerDashboard
         {
             TopInsights = executiveInsights.TopFindings,
-            RecommendedActions = []
+            RecommendedActions = [],
+            AdoptionFindings = adoptionFindings
         };
 
         if (records.Count == 0)

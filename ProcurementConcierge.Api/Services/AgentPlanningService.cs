@@ -28,6 +28,8 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
         "RecommendationAgent",
         "ProcessDiscoveryAgent",
         "GovernanceAgent",
+        "AdoptionIntelligenceAgent",
+        "KnowledgeAgent",
         "ClarificationAgent"
     ];
 
@@ -46,8 +48,10 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
         - RecommendationAgent: produces the final guidance narrative and recommended next action. Should generally run last when a recommendation is needed.
         - ProcessDiscoveryAgent: analyzes historical interaction patterns (use for questions about trends/history rather than a single new request).
         - GovernanceAgent: assesses broader procurement risk (repeated deviations, high-risk categories, country governance concerns) using historical data.
+        - AdoptionIntelligenceAgent: analyzes historical interaction records to identify adoption problems (repeated policy deviations, frequent supplier exceptions, low-compliance countries/categories, high ProcOps dependency, common missing information), ranked by severity. Use for adoption/rollout questions rather than a single new request.
+        - KnowledgeAgent: retrieves relevant procurement documentation (policies, Coupa user guides, country procedures, SOPs, training material, FAQs) for policy questions, process questions, or Coupa questions. Should run before RecommendationAgent when relevant documentation exists.
 
-        Respond with a JSON object matching this exact shape:
+        Respond with a JSON object
         { "goal": string, "tasks": [ { "agentName": string, "reason": string, "priority": number } ] }
 
         The "priority" field must be a 1-based execution order (1 = first).
@@ -248,6 +252,7 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
         {
             Add("ProcessDiscoveryAgent", "The request asks about historical trends/patterns rather than a new procurement.");
             Add("GovernanceAgent", "Synthesizes governance risk from historical compliance and process discovery data.");
+            Add("AdoptionIntelligenceAgent", "Identifies concrete adoption problems ranked by severity from historical interaction records.");
             Add("RecommendationAgent", "Summarizes findings into an actionable recommendation.");
             return new AgentPlan { Goal = userRequest, Tasks = tasks };
         }
@@ -261,11 +266,21 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
             return new AgentPlan { Goal = userRequest, Tasks = tasks };
         }
 
+        var isDocumentationQuestion = lowered.Contains("policy") || lowered.Contains("process") || lowered.Contains("procedure")
+            || lowered.Contains("coupa") || lowered.Contains("sop") || lowered.Contains("faq") || lowered.Contains("guide")
+            || lowered.Contains("how do i") || lowered.Contains("how to");
+
         Add("PolicyAgent", "Retrieve global policy and detect deviations for the extracted category.");
         Add("CountryGuidanceAgent", "Retrieve country-specific guidance for the extracted country.");
         Add("ComplianceAgent", "Evaluate preferred supplier availability, required approval, and compliance score.");
         Add("ProcOpsDependencyAgent", "Assess whether ProcOps intervention would be required.");
         Add("OrganizationalMemoryAgent", "Category and country are known; surface historical organizational patterns to inform guidance.");
+
+        if (isDocumentationQuestion)
+        {
+            Add("KnowledgeAgent", "The request involves a policy, process, or Coupa question; retrieve relevant procurement documentation.");
+        }
+
         Add("RecommendationAgent", "Produce the final procurement guidance and recommended next action.");
 
         return new AgentPlan { Goal = userRequest, Tasks = tasks };

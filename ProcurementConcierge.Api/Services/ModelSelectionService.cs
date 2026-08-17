@@ -21,6 +21,7 @@ public class ModelSelectionService(IOptions<OllamaSettings> options) : IModelSel
             ModelType.Planner => _settings.PlannerModel,
             ModelType.Coach => _settings.CoachingModel,
             ModelType.Insights => _settings.InsightModel,
+            ModelType.ControlTowerChat => _settings.ControlTowerChatModel,
             ModelType.Default => _settings.DefaultModel,
             _ => null
         };
