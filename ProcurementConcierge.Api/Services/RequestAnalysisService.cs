@@ -45,6 +45,17 @@ public partial class RequestAnalysisService(ILLMService llmService, ILogger<Requ
 
             var extraction = await _llmService.GenerateStructuredResponseAsync<ExtractionResult>(SystemPrompt, userPrompt);
 
+            var resolvedSpendConfidence = ResolveConfidence(extraction.SpendConfidence, nameof(extraction.SpendConfidence));
+
+            // Deterministic safety net: local LLMs (e.g. Ollama qwen3) tend to rate their own
+            // spendConfidence conservatively even when a concrete amount was extracted. If a
+            // non-zero spend was successfully parsed, trust that extraction and do not let a
+            // low self-reported confidence alone trigger a clarification request.
+            if (extraction.EstimatedSpend > 0)
+            {
+                resolvedSpendConfidence = Math.Max(resolvedSpendConfidence, 80);
+            }
+
             return new ProcurementAnalysis
             {
                 Category = string.IsNullOrWhiteSpace(extraction.Category) ? "Unknown" : extraction.Category,
@@ -54,7 +65,7 @@ public partial class RequestAnalysisService(ILLMService llmService, ILogger<Requ
                 BusinessJustification = string.IsNullOrWhiteSpace(extraction.BusinessJustification) ? null : extraction.BusinessJustification,
                 CategoryConfidence = ResolveConfidence(extraction.CategoryConfidence, nameof(extraction.CategoryConfidence)),
                 CountryConfidence = ResolveConfidence(extraction.CountryConfidence, nameof(extraction.CountryConfidence)),
-                SpendConfidence = ResolveConfidence(extraction.SpendConfidence, nameof(extraction.SpendConfidence)),
+                SpendConfidence = resolvedSpendConfidence,
                 OriginalMessage = message
             };
         }
@@ -75,6 +86,7 @@ public partial class RequestAnalysisService(ILLMService llmService, ILogger<Requ
         public string Country { get; set; } = string.Empty;
 
         [JsonPropertyName("estimatedSpend")]
+        [JsonConverter(typeof(LenientDecimalConverter))]
         public decimal EstimatedSpend { get; set; }
 
         [JsonPropertyName("supplierName")]
@@ -87,13 +99,90 @@ public partial class RequestAnalysisService(ILLMService llmService, ILogger<Requ
         // (rather than silently taking on a C# default), even though the system prompt
         // requires these fields to always be present.
         [JsonPropertyName("categoryConfidence")]
+        [JsonConverter(typeof(LenientNullableIntConverter))]
         public int? CategoryConfidence { get; set; }
 
         [JsonPropertyName("countryConfidence")]
+        [JsonConverter(typeof(LenientNullableIntConverter))]
         public int? CountryConfidence { get; set; }
 
         [JsonPropertyName("spendConfidence")]
+        [JsonConverter(typeof(LenientNullableIntConverter))]
         public int? SpendConfidence { get; set; }
+    }
+
+    /// <summary>
+    /// Local Ollama models sometimes emit numeric fields as an empty string (e.g.
+    /// <c>"estimatedSpend": ""</c>) instead of omitting them or using <c>0</c>, which the
+    /// default <see cref="decimal"/> converter cannot deserialize and previously caused the
+    /// entire LLM extraction to fail and fall back to the heuristic parser. This converter
+    /// tolerantly treats blank/unparseable string values as <c>0</c> while still supporting
+    /// genuine JSON numbers.
+    /// </summary>
+    private sealed class LenientDecimalConverter : JsonConverter<decimal>
+    {
+        public override decimal Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.Number)
+            {
+                return reader.GetDecimal();
+            }
+
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                var raw = reader.GetString();
+                return decimal.TryParse(raw, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value)
+                    ? value
+                    : 0;
+            }
+
+            return 0;
+        }
+
+        public override void Write(Utf8JsonWriter writer, decimal value, JsonSerializerOptions options)
+            => writer.WriteNumberValue(value);
+    }
+
+    /// <summary>
+    /// Same tolerance as <see cref="LenientDecimalConverter"/>, but for the nullable integer
+    /// confidence fields, in case the LLM emits an empty string there too.
+    /// </summary>
+    private sealed class LenientNullableIntConverter : JsonConverter<int?>
+    {
+        public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.Null)
+            {
+                return null;
+            }
+
+            if (reader.TokenType == JsonTokenType.Number)
+            {
+                return reader.GetInt32();
+            }
+
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                var raw = reader.GetString();
+                return int.TryParse(raw, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var value)
+                    ? value
+                    : null;
+            }
+
+            return null;
+        }
+
+        public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options)
+        {
+            if (value is null)
+            {
+                writer.WriteNullValue();
+            }
+            else
+            {
+                writer.WriteNumberValue(value.Value);
+            }
+        }
     }
 
     /// <summary>

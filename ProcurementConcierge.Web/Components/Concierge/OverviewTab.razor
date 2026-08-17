@@ -1,0 +1,40 @@
+@using static ProcurementConcierge.Web.Components.Concierge.ConciergeUiHelpers
+
+<div class="card mb-3 @EscalationBorderClass(Response.EscalationLevel)">
+    <div class="card-body">
+        <h3 class="h6">Escalation Requirement</h3>
+        <span class="badge @EscalationBadgeClass(Response.EscalationLevel)">@Response.EscalationLevel</span>
+        <p class="mb-0 mt-2">@Response.EscalationReason</p>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h3 class="h6">Extracted Request</h3>
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Category</dt>
+            <dd class="col-sm-8">@Response.Category <span class="text-muted">(confidence: @Response.CategoryConfidence%)</span></dd>
+            <dt class="col-sm-4">Country</dt>
+            <dd class="col-sm-8">@Response.Country <span class="text-muted">(confidence: @Response.CountryConfidence%)</span></dd>
+            <dt class="col-sm-4">Estimated Spend</dt>
+            <dd class="col-sm-8">@Response.EstimatedSpend.ToString("C") <span class="text-muted">(confidence: @Response.SpendConfidence%)</span></dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card mb-0">
+    <div class="card-body">
+        <h3 class="h6">Compliance Score</h3>
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Score</dt>
+            <dd class="col-sm-8">@Response.ComplianceScore / 100</dd>
+            <dt class="col-sm-4">Level</dt>
+            <dd class="col-sm-8"><span class="badge @ComplianceBadgeClass(Response.ComplianceLevel)">@Response.ComplianceLevel</span></dd>
+        </dl>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProcurementResponse Response { get; set; } = default!;
+}

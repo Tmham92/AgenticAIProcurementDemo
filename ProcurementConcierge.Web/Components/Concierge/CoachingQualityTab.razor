@@ -1,0 +1,98 @@
+@using static ProcurementConcierge.Web.Components.Concierge.ConciergeUiHelpers
+
+@if (Response.ProcurementCoaching is not null)
+{
+    <div class="card mb-3 @(Response.ProcurementCoaching.RequestQualityScore < 70 ? "border-warning" : "border-success")">
+        <div class="card-body">
+            <h3 class="h6">Procurement Coaching</h3>
+            <dl class="row mb-2">
+                <dt class="col-sm-4">Request Quality Score</dt>
+                <dd class="col-sm-8">@Response.ProcurementCoaching.RequestQualityScore / 100</dd>
+            </dl>
+
+            @if (Response.ProcurementCoaching.MissingInformation.Count > 0)
+            {
+                <p class="mb-1"><strong>Missing Information</strong></p>
+                <ul>
+                    @foreach (var missing in Response.ProcurementCoaching.MissingInformation)
+                    {
+                        <li>@missing</li>
+                    }
+                </ul>
+            }
+
+            @if (Response.ProcurementCoaching.ImprovementSuggestions.Count > 0)
+            {
+                <p class="mb-1"><strong>Improvement Suggestions</strong></p>
+                <ul>
+                    @foreach (var suggestion in Response.ProcurementCoaching.ImprovementSuggestions)
+                    {
+                        <li>@suggestion</li>
+                    }
+                </ul>
+            }
+
+            @if (Response.ProcurementCoaching.RequestQualityScore < 70
+                && Response.ProcurementCoaching.MissingInformation.Count == 0
+                && Response.ProcurementCoaching.ImprovementSuggestions.Count == 0)
+            {
+                <p class="mb-0 text-muted fst-italic">
+                    Your request scored low, but no specific missing information or suggestions could be
+                    generated. Try describing your need with more detail (category, country, budget, and
+                    business justification).
+                </p>
+            }
+        </div>
+    </div>
+}
+
+<div class="card mb-0 @(Response.RequestQuality.RequestQualityScore < 70 ? "border-warning" : "border-success")">
+    <div class="card-body">
+        <h3 class="h6">Request Quality Feedback</h3>
+        <dl class="row mb-2">
+            <dt class="col-sm-4">Quality Score</dt>
+            <dd class="col-sm-8">
+                @Response.RequestQuality.RequestQualityScore / 100
+                <span class="badge @RiskBadgeClass(QualityRiskEquivalent(Response.RequestQuality.QualityLevel))">@Response.RequestQuality.QualityLevel</span>
+            </dd>
+        </dl>
+
+        @if (Response.RequestQuality.MissingInformation.Count > 0)
+        {
+            <p class="mb-1"><strong>Missing Information</strong></p>
+            <ul>
+                @foreach (var missing in Response.RequestQuality.MissingInformation)
+                {
+                    <li>@missing</li>
+                }
+            </ul>
+        }
+
+        @if (Response.RequestQuality.ImprovementSuggestions.Count > 0)
+        {
+            <p class="mb-1"><strong>Suggestions</strong></p>
+            <ul>
+                @foreach (var suggestion in Response.RequestQuality.ImprovementSuggestions)
+                {
+                    <li>@suggestion</li>
+                }
+            </ul>
+        }
+
+        @if (Response.RequestQuality.RequestQualityScore < 70
+            && Response.RequestQuality.MissingInformation.Count == 0
+            && Response.RequestQuality.ImprovementSuggestions.Count == 0)
+        {
+            <p class="mb-0 text-muted fst-italic">
+                Your request scored low, but no specific missing information or suggestions could be
+                generated. Try describing your need with more detail (category, country, budget, and
+                business justification).
+            </p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProcurementResponse Response { get; set; } = default!;
+}

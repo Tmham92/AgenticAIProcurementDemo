@@ -11,4 +11,10 @@ public class ExecutionStep
     public string Reason { get; set; } = string.Empty;
     public string Outcome { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// The Dynamic Replanning iteration (1-based) during which this agent ran, so the UI
+    /// can group the execution trace by iteration.
+    /// </summary>
+    public int IterationNumber { get; set; } = 1;
 }

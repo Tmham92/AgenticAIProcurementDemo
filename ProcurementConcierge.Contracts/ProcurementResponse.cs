@@ -82,4 +82,41 @@ public class ProcurementResponse
     /// Adoption Layer rather than an opaque chatbot.
     /// </summary>
     public List<AgentExecutionContext> AgentExecutionPath { get; set; } = [];
+
+    /// <summary>
+    /// True when reflection determined critical information is missing or too uncertain
+    /// to safely generate procurement guidance. When true, the API should stop before
+    /// compliance/recommendation/Coupa steps and the UI should show a clarification prompt.
+    /// </summary>
+    public bool NeedsClarification { get; set; }
+
+    /// <summary>
+    /// The single concise follow-up question to ask the user when <see cref="NeedsClarification"/> is true.
+    /// </summary>
+    public string? FollowUpQuestion { get; set; }
+
+    /// <summary>
+    /// The specific fields that are missing or too uncertain to proceed with, when
+    /// <see cref="NeedsClarification"/> is true.
+    /// </summary>
+    public List<string>? MissingInformation { get; set; }
+
+    /// <summary>
+    /// Organizational Memory insight derived from historical interactions with the same
+    /// category and country, used to inform current guidance with past organizational
+    /// procurement behavior.
+    /// </summary>
+    public OrganizationalMemoryInsight? OrganizationalInsight { get; set; }
+
+    /// <summary>
+    /// The total number of Dynamic Replanning iterations executed to produce this response.
+    /// </summary>
+    public int Iterations { get; set; } = 1;
+
+    /// <summary>
+    /// Auditable trace of every replanning decision made while producing this response,
+    /// so the UI can display the agentic reasoning process (Iteration N, reason, agents
+    /// added) rather than presenting a fixed single-pass pipeline.
+    /// </summary>
+    public List<ReplanningHistory> ReplanningHistory { get; set; } = [];
 }

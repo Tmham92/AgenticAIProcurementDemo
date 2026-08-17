@@ -68,12 +68,23 @@ public class OllamaLLMService(
     {
         var model = _modelSelectionService.ResolveModel(modelType);
 
+        // Some structured responses (e.g. executive briefings with several string arrays)
+        // exceed Ollama's default num_predict token cap, causing generation to stop
+        // mid-JSON and produce an unparseable/truncated object. MaxResponseTokens is
+        // configurable via Ollama:MaxResponseTokens (set to -1 to remove the cap entirely).
+        var modelOptions = new Dictionary<string, object?> { ["num_predict"] = _settings.MaxResponseTokens };
+        if (_settings.ContextWindowTokens is { } contextWindowTokens)
+        {
+            modelOptions["num_ctx"] = contextWindowTokens;
+        }
+
         var requestBody = new Dictionary<string, object?>
         {
             ["model"] = model,
             ["prompt"] = userPrompt,
             ["system"] = systemPrompt,
-            ["stream"] = false
+            ["stream"] = false,
+            ["options"] = modelOptions
         };
 
         if (useJsonFormat)

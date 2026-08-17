@@ -1,0 +1,33 @@
+<div class="card mb-3">
+    <div class="card-body">
+        <h3 class="h6">Preferred Suppliers</h3>
+        @if (Response.PreferredSuppliers.Count > 0)
+        {
+            <ul class="mb-0">
+                @foreach (var supplier in Response.PreferredSuppliers)
+                {
+                    <li>@supplier</li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p class="mb-0 text-muted">No preferred suppliers configured for this category.</p>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Response.CountryGuidance))
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h3 class="h6">Country-Specific Guidance</h3>
+            <p class="mb-0">@Response.CountryGuidance</p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ProcurementResponse Response { get; set; } = default!;
+}

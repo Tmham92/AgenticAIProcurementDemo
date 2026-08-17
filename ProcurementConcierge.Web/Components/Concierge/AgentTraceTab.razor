@@ -1,0 +1,111 @@
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+    <p class="text-muted small mb-0">
+        The Procurement Concierge behaves as an Agentic Procurement Adoption Layer: the
+        trace below shows every specialized agent/service invoked, in order. Click a row
+        to expand the full input/output details.
+    </p>
+    <div class="btn-group btn-group-sm flex-shrink-0" role="group">
+        <button type="button" class="btn btn-outline-secondary" @onclick="ExpandAllSteps">Expand All</button>
+        <button type="button" class="btn btn-outline-secondary" @onclick="CollapseAllSteps">Collapse All</button>
+    </div>
+</div>
+
+@if (Response.Iterations > 1 || Response.ReplanningHistory.Count > 0)
+{
+    <div class="card mb-3 border-info">
+        <div class="card-body">
+            <h3 class="h6">Agent Iterations</h3>
+            <p class="text-muted small mb-2">
+                Dynamic Replanning ran @Response.Iterations iteration@(Response.Iterations == 1 ? "" : "s")
+                before the goal was achieved or the iteration budget was reached.
+            </p>
+            <ol class="mb-0">
+                @foreach (var entry in Response.ReplanningHistory.OrderBy(h => h.Iteration))
+                {
+                    <li class="mb-1">
+                        <strong>Iteration @entry.Iteration</strong> - @entry.Reason
+                        @if (entry.AddedAgents.Count > 0)
+                        {
+                            <span class="text-muted"> (@string.Join(", ", entry.AddedAgents))</span>
+                        }
+                    </li>
+                }
+            </ol>
+        </div>
+    </div>
+}
+
+@foreach (var iterationGroup in Response.AgentExecutionPath.GroupBy(s => s.IterationNumber).OrderBy(g => g.Key))
+{
+    <h4 class="h6 mt-3">Iteration @iterationGroup.Key</h4>
+    <div class="table-responsive">
+        <table class="table table-sm mb-3 align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 2.5rem;"></th>
+                    <th>#</th>
+                    <th>Service</th>
+                    <th>Action</th>
+                    <th>Outcome</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var step in iterationGroup)
+                {
+                    var isExpanded = _expandedSteps.Contains(step.StepNumber);
+                    <tr role="button" class="reasoning-step-row" @onclick="() => ToggleStep(step.StepNumber)">
+                        <td class="text-center">
+                            <span class="reasoning-chevron @(isExpanded ? "expanded" : "")">&#9656;</span>
+                        </td>
+                        <td>@step.StepNumber</td>
+                        <td><span class="badge bg-secondary">@step.ServiceName</span></td>
+                        <td>@step.Action</td>
+                        <td class="text-truncate" style="max-width: 20rem;">@step.Output</td>
+                        <td class="text-nowrap">@step.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</td>
+                    </tr>
+                    @if (isExpanded)
+                    {
+                        <tr class="reasoning-step-details">
+                            <td></td>
+                            <td colspan="5">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-2">Input</dt>
+                                    <dd class="col-sm-10 text-break">@step.Input</dd>
+                                    <dt class="col-sm-2">Output</dt>
+                                    <dd class="col-sm-10 text-break mb-0">@step.Output</dd>
+                                </dl>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ProcurementResponse Response { get; set; } = default!;
+
+    private readonly HashSet<int> _expandedSteps = new();
+
+    private void ToggleStep(int stepNumber)
+    {
+        if (!_expandedSteps.Add(stepNumber))
+        {
+            _expandedSteps.Remove(stepNumber);
+        }
+    }
+
+    private void ExpandAllSteps()
+    {
+        _expandedSteps.Clear();
+        foreach (var step in Response.AgentExecutionPath)
+        {
+            _expandedSteps.Add(step.StepNumber);
+        }
+    }
+
+    private void CollapseAllSteps() => _expandedSteps.Clear();
+}

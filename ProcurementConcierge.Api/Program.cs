@@ -100,12 +100,15 @@ builder.Services.AddScoped<ICountryGovernanceService, CountryGovernanceService>(
 builder.Services.AddScoped<IControlTowerService, ControlTowerService>();
 builder.Services.AddScoped<IControlTowerAgentService, ControlTowerAgentService>();
 builder.Services.AddSingleton<ICoupaSimulationService, CoupaSimulationService>();
+builder.Services.AddSingleton<IClarificationService, ClarificationService>();
+builder.Services.AddScoped<IOrganizationalMemoryService, OrganizationalMemoryService>();
 
 // Agentic AI architecture: planner, orchestrator, and plannable agents.
 builder.Services.AddScoped<IAgentPlanningService, AgentPlanningService>();
 builder.Services.AddScoped<IAgentOrchestrator, AgentOrchestrator>();
 builder.Services.AddScoped<IReflectionAgent, ReflectionAgent>();
 builder.Services.AddScoped<IEscalationAgent, EscalationAgent>();
+builder.Services.AddScoped<IReplanningService, ReplanningService>();
 builder.Services.AddScoped<IAgent, RequestAnalysisAgent>();
 builder.Services.AddScoped<IAgent, PolicyAgent>();
 builder.Services.AddScoped<IAgent, CountryGuidanceAgent>();
@@ -114,6 +117,8 @@ builder.Services.AddScoped<IAgent, RecommendationAgent>();
 builder.Services.AddScoped<IAgent, ProcOpsDependencyAgent>();
 builder.Services.AddScoped<IAgent, ProcessDiscoveryAgent>();
 builder.Services.AddScoped<IAgent, GovernanceAgent>();
+builder.Services.AddScoped<IAgent, OrganizationalMemoryAgent>();
+builder.Services.AddScoped<IAgent, ClarificationAgent>();
 
 // Future extension point: register additional IProcurementAgent implementations here, e.g.:
 // builder.Services.AddScoped<IProcurementAgent, ComplianceAgent>();

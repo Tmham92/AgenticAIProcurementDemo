@@ -1,0 +1,110 @@
+@using static ProcurementConcierge.Web.Components.Concierge.ConciergeUiHelpers
+
+<h2 class="h5">Guidance Result</h2>
+
+@if (Response.NeedsClarification)
+{
+    <div class="card mb-3 border-warning">
+        <div class="card-body">
+            <h3 class="h6 mb-3">🟠 More information needed</h3>
+            <p class="mb-3">We need a little more information before we can guide you.</p>
+
+            <p class="mb-1 fw-semibold">Follow-up Question</p>
+            <p class="mb-3">@Response.FollowUpQuestion</p>
+
+            @if (Response.MissingInformation is { Count: > 0 })
+            {
+                <p class="mb-1 fw-semibold">Missing</p>
+                <ul class="mb-0">
+                    @foreach (var missing in Response.MissingInformation)
+                    {
+                        <li>@missing</li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+}
+else
+{
+    @if (Response.NeedsHumanReview)
+    {
+        <div class="alert alert-warning">
+            <strong>Needs Human Review:</strong> One or more extracted fields have low confidence
+            (Category: @Response.CategoryConfidence%, Country: @Response.CountryConfidence%,
+            Spend: @Response.SpendConfidence%). Please verify the details in the Details tab before proceeding.
+        </div>
+    }
+
+    @if (Response.RequestQuality.RequestQualityScore < 70)
+    {
+        <div class="alert alert-warning">
+            <strong>Low Request Quality (@Response.RequestQuality.RequestQualityScore/100):</strong>
+            Your request is missing key details, so the guidance below may be generic. See the
+            <strong>Coaching &amp; Quality</strong> tab for specific suggestions on what to add.
+        </div>
+    }
+
+    @if (Response.Guidance is not null)
+    {
+        <div class="card mb-3 border-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h3 class="h6 mb-0">Guidance</h3>
+                    <span class="badge @GuidanceLevelBadgeClass(Response.Guidance.GuidanceLevel)">@Response.Guidance.GuidanceLevel</span>
+                </div>
+
+                @if (HasNoGuidanceContent(Response.Guidance))
+                {
+                    <div class="alert alert-warning mb-0">
+                        <strong>No guidance available:</strong> The request did not contain enough information
+                        to determine next steps. See the <strong>Coaching &amp; Quality</strong> tab for
+                        suggestions on what to add, then resubmit your request.
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="border rounded p-2 h-100">
+                                <div class="text-muted small">✅ Status</div>
+                                <div class="fw-semibold">@FallbackText(Response.Guidance.Status)</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 h-100">
+                                <div class="text-muted small">➡ Next Action</div>
+                                <div class="fw-semibold">@FallbackText(Response.Guidance.NextAction)</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 h-100">
+                                <div class="text-muted small">👤 Approval</div>
+                                <div class="fw-semibold">@FallbackText(Response.Guidance.Approval)</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 h-100">
+                                <div class="text-muted small">💡 Tip</div>
+                                <div class="fw-semibold">@FallbackText(Response.Guidance.Tip)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="mb-1 small text-muted">Ease of Processing</p>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span>@FriendlinessEmoji(Response.Guidance.AdoptionFriendlinessScore) @Response.Guidance.AdoptionFriendlinessScore/100</span>
+                    </div>
+                    <div class="progress" role="progressbar" aria-valuenow="@Response.Guidance.AdoptionFriendlinessScore" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar @FriendlinessBarClass(Response.Guidance.AdoptionFriendlinessScore)" style="width:@Response.Guidance.AdoptionFriendlinessScore%"></div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ProcurementResponse Response { get; set; } = default!;
+}

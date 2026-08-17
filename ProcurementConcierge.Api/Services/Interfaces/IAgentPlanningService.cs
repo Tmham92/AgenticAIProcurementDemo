@@ -11,4 +11,12 @@ namespace ProcurementConcierge.Api.Services.Interfaces;
 public interface IAgentPlanningService
 {
     Task<AgentPlan> CreatePlanAsync(string userRequest);
+
+    /// <summary>
+    /// Builds a deterministic follow-up plan (Dynamic Replanning) from an explicit,
+    /// already-decided list of agent names (e.g. from <see cref="IReplanningService"/>),
+    /// preserving their order as sequential priorities. Used when the agents required to
+    /// complete the goal are already known, avoiding a redundant LLM planning round-trip.
+    /// </summary>
+    AgentPlan CreateFollowUpPlan(IReadOnlyList<string> agentNames, string goal);
 }

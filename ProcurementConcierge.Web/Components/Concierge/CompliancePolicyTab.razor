@@ -1,0 +1,70 @@
+@using static ProcurementConcierge.Web.Components.Concierge.ConciergeUiHelpers
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h3 class="h6">Compliance &amp; Approval</h3>
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Compliance Status</dt>
+            <dd class="col-sm-8">@Response.ComplianceStatus</dd>
+            <dt class="col-sm-4">Compliance Risk</dt>
+            <dd class="col-sm-8">
+                <span class="badge @RiskBadgeClass(Response.ComplianceRisk)">@Response.ComplianceRisk</span>
+            </dd>
+            <dt class="col-sm-4">Required Approval</dt>
+            <dd class="col-sm-8">@Response.RequiredApproval</dd>
+        </dl>
+    </div>
+</div>
+
+@if (Response.PolicyDeviations.Count > 0)
+{
+    <div class="card mb-3 border-danger">
+        <div class="card-body">
+            <h3 class="h6">Policy Deviations</h3>
+            @foreach (var deviation in Response.PolicyDeviations)
+            {
+                <div class="mb-2">
+                    <span class="badge @RiskBadgeClass(deviation.Severity)">@deviation.Severity</span>
+                    <strong>@deviation.Type</strong>
+                    <p class="mb-0">@deviation.Description</p>
+                    <p class="mb-0 fst-italic text-muted">Recommended action: @deviation.RecommendedAction</p>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (Response.ProcOpsAssessment is not null)
+{
+    <div class="card mb-0 @(Response.ProcOpsAssessment.InterventionRequired ? "border-danger" : "border-success")">
+        <div class="card-body">
+            <h3 class="h6">ProcOps Dependency</h3>
+            <span class="badge @(Response.ProcOpsAssessment.InterventionRequired ? "bg-danger" : "bg-success")">
+                @(Response.ProcOpsAssessment.InterventionRequired ? "Intervention Likely" : "No Intervention Expected")
+            </span>
+            <p class="mb-1 mt-2">@Response.ProcOpsAssessment.Reason</p>
+            <p class="mb-0 fst-italic">@Response.ProcOpsAssessment.Recommendation</p>
+        </div>
+    </div>
+}
+
+@if (Response.OrganizationalInsight is { SimilarRequests: > 0 } insight)
+{
+    <div class="card mt-3 border-secondary">
+        <div class="card-body">
+            <h3 class="h6">Organizational Insight</h3>
+            <dl class="row mb-2">
+                <dt class="col-sm-6">Similar Requests</dt>
+                <dd class="col-sm-6">@insight.SimilarRequests</dd>
+                <dt class="col-sm-6">Average Compliance</dt>
+                <dd class="col-sm-6">@insight.AverageComplianceScore%</dd>
+            </dl>
+            <p class="mb-0"><strong>Pattern:</strong> @insight.Summary</p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ProcurementResponse Response { get; set; } = default!;
+}

@@ -24,9 +24,12 @@ public class RecommendationAgent(IAdoptionGuidanceService adoptionGuidanceServic
             ?? new ComplianceEvaluation();
         var scoreResult = context.GetMemory<ComplianceScoreResult>(MemoryKeys.ComplianceScoreResult)
             ?? new ComplianceScoreResult();
+        var organizationalInsight = context.GetMemory<OrganizationalMemoryInsight>(MemoryKeys.OrganizationalMemoryInsight);
 
         var guidance = await _adoptionGuidanceService.BuildGuidanceAsync(
             analysis, policy, countryRule, evaluation, scoreResult.Score);
+
+        ApplyOrganizationalInsight(guidance, organizationalInsight);
 
         context.SetMemory(MemoryKeys.UserGuidance, guidance);
         context.SetMemory(MemoryKeys.Recommendation, guidance.Status);
@@ -43,5 +46,46 @@ public class RecommendationAgent(IAdoptionGuidanceService adoptionGuidanceServic
                 [MemoryKeys.RecommendedNextAction] = guidance.NextAction
             }
         };
+    }
+
+    /// <summary>
+    /// Incorporates organizational memory findings (historical requests with the same
+    /// category and country) into the guidance tip as a short, concise addition
+    /// (max 15 words), per the rules: frequent policy deviations, typically high
+    /// compliance, or high ProcOps dependency.
+    /// </summary>
+    private static void ApplyOrganizationalInsight(UserGuidanceResponse guidance, OrganizationalMemoryInsight? insight)
+    {
+        if (insight is null || insight.SimilarRequests == 0)
+        {
+            return;
+        }
+
+        var deviationRate = (double)insight.PolicyDeviationCount / insight.SimilarRequests;
+        var procOpsRate = (double)insight.ProcOpsDependencyCount / insight.SimilarRequests;
+
+        string? organizationalTip = null;
+
+        if (deviationRate >= 0.5)
+        {
+            organizationalTip = "Similar requests often require supplier exceptions.";
+        }
+        else if (procOpsRate >= 0.5)
+        {
+            organizationalTip = "Similar requests often require procurement support.";
+        }
+        else if (insight.AverageComplianceScore >= 80)
+        {
+            organizationalTip = "Similar requests are normally approved without issues.";
+        }
+
+        if (organizationalTip is null)
+        {
+            return;
+        }
+
+        guidance.Tip = string.IsNullOrWhiteSpace(guidance.Tip)
+            ? organizationalTip
+            : $"{guidance.Tip} {organizationalTip}";
     }
 }

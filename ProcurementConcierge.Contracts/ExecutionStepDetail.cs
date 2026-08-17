@@ -11,4 +11,9 @@ public class ExecutionStepDetail
     public string Action { get; set; } = string.Empty;
     public string Outcome { get; set; } = string.Empty;
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// The Dynamic Replanning iteration (1-based) during which this step ran.
+    /// </summary>
+    public int IterationNumber { get; set; } = 1;
 }

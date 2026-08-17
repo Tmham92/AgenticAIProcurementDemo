@@ -30,4 +30,21 @@ public class OllamaSettings
     /// local models. Can also be supplied via the OLLAMA_API_KEY environment variable.
     /// </summary>
     public string? ApiKey { get; set; }
+
+    /// <summary>
+    /// Maximum number of tokens Ollama is allowed to generate per response (the "options.num_predict"
+    /// request parameter). Structured responses with several string arrays (e.g. executive
+    /// briefings) can be long; too low a cap truncates the JSON mid-generation and causes
+    /// deserialization failures. Defaults to 4096. Set to -1 to remove the cap entirely
+    /// (model stops naturally at end-of-response instead of an arbitrary token limit).
+    /// </summary>
+    public int MaxResponseTokens { get; set; } = 4096;
+
+    /// <summary>
+    /// Context window size in tokens (the "options.num_ctx" request parameter), covering the
+    /// combined system prompt, user prompt, and generated response. If unset, Ollama's model
+    /// default is used. Increase this if prompts + expected output are large enough to be
+    /// truncated even with a generous <see cref="MaxResponseTokens"/>.
+    /// </summary>
+    public int? ContextWindowTokens { get; set; }
 }

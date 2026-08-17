@@ -24,9 +24,11 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
         "ComplianceAgent",
         "CountryGuidanceAgent",
         "ProcOpsDependencyAgent",
+        "OrganizationalMemoryAgent",
         "RecommendationAgent",
         "ProcessDiscoveryAgent",
-        "GovernanceAgent"
+        "GovernanceAgent",
+        "ClarificationAgent"
     ];
 
     private const string SystemPrompt = """
@@ -40,6 +42,7 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
         - CountryGuidanceAgent: retrieves country-specific procurement guidance. Requires RequestAnalysisAgent to have already run.
         - ComplianceAgent: evaluates preferred supplier availability, required approval, and compliance score/risk. Requires PolicyAgent to have already run.
         - ProcOpsDependencyAgent: assesses whether Procurement Operations intervention would be required. Requires ComplianceAgent to have already run.
+        - OrganizationalMemoryAgent: analyzes historical interactions with the same category and country to surface organizational patterns (compliance, policy deviations, ProcOps dependency). Requires ComplianceAgent to have already run and should run before RecommendationAgent.
         - RecommendationAgent: produces the final guidance narrative and recommended next action. Should generally run last when a recommendation is needed.
         - ProcessDiscoveryAgent: analyzes historical interaction patterns (use for questions about trends/history rather than a single new request).
         - GovernanceAgent: assesses broader procurement risk (repeated deviations, high-risk categories, country governance concerns) using historical data.
@@ -71,6 +74,36 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
         }
 
         return EnsureMandatoryAgents(FallbackPlan(userRequest));
+    }
+
+    /// <summary>
+    /// Builds a deterministic follow-up plan (Dynamic Replanning) from an explicit list of
+    /// agent names already decided by <see cref="IReplanningService"/>, preserving their
+    /// order as sequential priorities. Unlike <see cref="CreatePlanAsync"/>, this does not
+    /// call the LLM, since the agents required are already known with certainty.
+    /// </summary>
+    public AgentPlan CreateFollowUpPlan(IReadOnlyList<string> agentNames, string goal)
+    {
+        var plan = new AgentPlan { Goal = goal };
+        var priority = 1;
+
+        foreach (var agentName in agentNames)
+        {
+            if (string.IsNullOrWhiteSpace(agentName) || !AvailableAgents.Contains(agentName))
+            {
+                _logger.LogWarning("Follow-up plan referenced unknown agent '{AgentName}'. Skipping.", agentName);
+                continue;
+            }
+
+            plan.Tasks.Add(new PlannedTask
+            {
+                AgentName = agentName,
+                Reason = "Added by Dynamic Replanning to address a gap detected during reflection.",
+                Priority = priority++
+            });
+        }
+
+        return plan;
     }
 
     /// <summary>
@@ -111,6 +144,23 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
                 AgentName = "ComplianceAgent",
                 Reason = "Automatically added: compliance score/risk evaluation is mandatory for every procurement request.",
                 Priority = policyPriority + 1
+            });
+        }
+
+        // Organizational Memory: whenever the category and country will be known (i.e. this
+        // is a new-request flow with RequestAnalysisAgent), surface historical organizational
+        // patterns after ComplianceAgent and before RecommendationAgent.
+        if (!agentNames.Contains("OrganizationalMemoryAgent"))
+        {
+            var complianceAgentPriority = plan.Tasks
+                .First(t => t.AgentName == "ComplianceAgent")
+                .Priority;
+
+            plan.Tasks.Add(new PlannedTask
+            {
+                AgentName = "OrganizationalMemoryAgent",
+                Reason = "Automatically added: category and country are known, so historical organizational patterns should inform guidance.",
+                Priority = complianceAgentPriority + 1
             });
         }
 
@@ -215,6 +265,7 @@ public class AgentPlanningService(ILLMService llmService, ILogger<AgentPlanningS
         Add("CountryGuidanceAgent", "Retrieve country-specific guidance for the extracted country.");
         Add("ComplianceAgent", "Evaluate preferred supplier availability, required approval, and compliance score.");
         Add("ProcOpsDependencyAgent", "Assess whether ProcOps intervention would be required.");
+        Add("OrganizationalMemoryAgent", "Category and country are known; surface historical organizational patterns to inform guidance.");
         Add("RecommendationAgent", "Produce the final procurement guidance and recommended next action.");
 
         return new AgentPlan { Goal = userRequest, Tasks = tasks };

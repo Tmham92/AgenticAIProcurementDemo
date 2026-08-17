@@ -1,0 +1,78 @@
+@if (Response.CoupaSimulation is not null)
+{
+    <div class="card mb-3 border-info">
+        <div class="card-body">
+            <h3 class="h6">Simulated Coupa Requisition</h3>
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Requisition ID</dt>
+                <dd class="col-sm-8">@Response.CoupaSimulation.DraftRequisition.Id</dd>
+                <dt class="col-sm-4">Category</dt>
+                <dd class="col-sm-8">@Response.CoupaSimulation.DraftRequisition.Category</dd>
+                <dt class="col-sm-4">Country</dt>
+                <dd class="col-sm-8">@Response.CoupaSimulation.DraftRequisition.Country</dd>
+                <dt class="col-sm-4">Estimated Spend</dt>
+                <dd class="col-sm-8">@Response.CoupaSimulation.DraftRequisition.EstimatedSpend.ToString("C")</dd>
+                <dt class="col-sm-4">Status</dt>
+                <dd class="col-sm-8"><span class="badge bg-info text-dark">@Response.CoupaSimulation.DraftRequisition.Status</span></dd>
+                <dt class="col-sm-4">Supplier</dt>
+                <dd class="col-sm-8">@(Response.CoupaSimulation.DraftRequisition.SupplierName ?? "None assigned")</dd>
+                <dt class="col-sm-4">Created At</dt>
+                <dd class="col-sm-8">@Response.CoupaSimulation.DraftRequisition.CreatedAt.ToLocalTime().ToString("g")</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h3 class="h6">Preferred Suppliers Considered</h3>
+            @if (Response.CoupaSimulation.PreferredSuppliers.Count > 0)
+            {
+                <ul class="mb-0">
+                    @foreach (var supplier in Response.CoupaSimulation.PreferredSuppliers)
+                    {
+                        <li>
+                            @supplier.Name
+                            <span class="badge bg-secondary">@supplier.Rating</span>
+                            @if (supplier.IsPreferred)
+                            {
+                                <span class="badge bg-success">Preferred</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="mb-0 text-muted">No preferred suppliers were considered for this category.</p>
+            }
+        </div>
+    </div>
+
+    <div class="card mb-0">
+        <div class="card-body">
+            <h3 class="h6">Approval Route</h3>
+            @if (Response.CoupaSimulation.ApprovalRoute.Count > 0)
+            {
+                <ol class="mb-0">
+                    @foreach (var approval in Response.CoupaSimulation.ApprovalRoute)
+                    {
+                        <li>@approval.ApproverRole - <span class="badge bg-secondary">@approval.Status</span></li>
+                    }
+                </ol>
+            }
+            else
+            {
+                <p class="mb-0 text-muted">No approval steps are required for this requisition.</p>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <p class="text-muted mb-0">No Coupa simulation data is available for this request.</p>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ProcurementResponse Response { get; set; } = default!;
+}

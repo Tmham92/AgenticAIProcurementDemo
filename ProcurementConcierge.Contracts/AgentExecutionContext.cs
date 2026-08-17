@@ -15,4 +15,10 @@ public class AgentExecutionContext
     public string Input { get; set; } = string.Empty;
     public string Output { get; set; } = string.Empty;
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// The Dynamic Replanning iteration (1-based) during which this step ran, so the UI
+    /// can group the reasoning path by iteration (Iteration 1, Iteration 2, ...).
+    /// </summary>
+    public int IterationNumber { get; set; } = 1;
 }

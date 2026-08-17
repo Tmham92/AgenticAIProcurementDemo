@@ -79,8 +79,35 @@ public class ProcurementConciergeService(
         var guidance = GetOutput<UserGuidanceResponse>(executionResult, MemoryKeys.UserGuidance) ?? new UserGuidanceResponse();
         var escalation = GetOutput<EscalationDecision>(executionResult, nameof(EscalationDecision))
             ?? new EscalationDecision { Level = EscalationLevel.Automatic, Reason = "No escalation data available." };
+        var reflection = GetOutput<ReflectionResult>(executionResult, nameof(ReflectionResult));
+        var organizationalInsight = GetOutput<OrganizationalMemoryInsight>(executionResult, MemoryKeys.OrganizationalMemoryInsight);
 
         response.ProcOpsAssessment = procOpsAssessment;
+        response.OrganizationalInsight = organizationalInsight;
+        response.Iterations = executionResult.Iterations;
+        response.ReplanningHistory = executionResult.ReplanningHistory;
+
+        // Reflection-Driven Clarification: if reflection determined critical information is
+        // missing or too uncertain, stop before generating any recommendations, compliance
+        // results, or Coupa simulation output and ask the user a follow-up question instead.
+        if (reflection?.Clarification is { ClarificationRequired: true } clarification)
+        {
+            response.Category = analysis.Category;
+            response.Country = analysis.Country;
+            response.EstimatedSpend = analysis.EstimatedSpend;
+            response.CategoryConfidence = analysis.CategoryConfidence;
+            response.CountryConfidence = analysis.CountryConfidence;
+            response.SpendConfidence = analysis.SpendConfidence;
+            response.NeedsClarification = true;
+            response.FollowUpQuestion = clarification.FollowUpQuestion;
+            response.MissingInformation = clarification.MissingInformation;
+            response.Recommendation = "We need a little more information before we can guide you.";
+            RecordStep(response, ref stepNumber, nameof(ReflectionAgent), "Request Clarification",
+                input: request.Message,
+                output: $"Missing: {string.Join(", ", clarification.MissingInformation)}");
+
+            return response;
+        }
 
         // Step 1: Coach the user towards a more complete request, before policy evaluation.
         var coachingAssessment = await _procurementCoachingService.CoachAsync(analysis);
@@ -96,7 +123,8 @@ public class ProcurementConciergeService(
         {
             RecordStep(response, ref stepNumber, orchestratedStep.AgentName, orchestratedStep.Reason,
                 input: request.Message,
-                output: orchestratedStep.Outcome);
+                output: orchestratedStep.Outcome,
+                iterationNumber: orchestratedStep.IterationNumber);
         }
 
         response.Category = analysis.Category;
@@ -190,7 +218,7 @@ public class ProcurementConciergeService(
         return response;
     }
 
-    private void RecordStep(ProcurementResponse response, ref int stepNumber, string serviceName, string action, string input, string output)
+    private void RecordStep(ProcurementResponse response, ref int stepNumber, string serviceName, string action, string input, string output, int iterationNumber = 1)
     {
         stepNumber++;
         var context = new AgentExecutionContext
@@ -199,7 +227,8 @@ public class ProcurementConciergeService(
             ServiceName = serviceName,
             Action = action,
             Input = input,
-            Output = output
+            Output = output,
+            IterationNumber = iterationNumber
         };
 
         response.AgentExecutionPath.Add(context);
@@ -210,7 +239,8 @@ public class ProcurementConciergeService(
             ServiceName = serviceName,
             Action = action,
             Outcome = output,
-            Timestamp = context.Timestamp
+            Timestamp = context.Timestamp,
+            IterationNumber = iterationNumber
         };
         response.ExecutionStepDetails.Add(detail);
         response.ExecutionSteps.Add($"Step {stepNumber}: {serviceName} - {action}. Outcome: {output}");

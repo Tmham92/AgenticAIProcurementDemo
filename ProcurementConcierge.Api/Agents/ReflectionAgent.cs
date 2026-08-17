@@ -22,10 +22,13 @@ public interface IReflectionAgent
 /// <see cref="ILLMService"/>, so the pass/fail decision remains auditable and
 /// reproducible while the explanation reads naturally.
 /// </summary>
-public class ReflectionAgent(ILLMService llmService, ILogger<ReflectionAgent> logger) : IReflectionAgent
+public class ReflectionAgent(ILLMService llmService, IClarificationService clarificationService, ILogger<ReflectionAgent> logger) : IReflectionAgent
 {
     private readonly ILLMService _llmService = llmService;
+    private readonly IClarificationService _clarificationService = clarificationService;
     private readonly ILogger<ReflectionAgent> _logger = logger;
+
+    private const int ClarificationConfidenceThreshold = 70;
 
     private const string SystemPrompt = """
         You are the reflection module of an agentic procurement adoption platform. Given a
@@ -37,6 +40,9 @@ public class ReflectionAgent(ILLMService llmService, ILogger<ReflectionAgent> lo
     public async Task<ReflectionResult> ReflectAsync(AgentRunContext context)
     {
         var deterministic = DeterministicReflect(context);
+        deterministic.Clarification = BuildClarification(context, deterministic);
+        deterministic.RequiresClarification = deterministic.Clarification.ClarificationRequired;
+        deterministic.RequiresReplanning = EvaluateRequiresReplanning(context, deterministic);
 
         try
         {
@@ -75,6 +81,87 @@ public class ReflectionAgent(ILLMService llmService, ILogger<ReflectionAgent> lo
         deterministic.HumanInterventionRequired = !deterministic.GoalAchieved;
 
         return deterministic;
+    }
+
+    /// <summary>
+    /// Determines whether Dynamic Replanning should generate and execute an additional
+    /// follow-up plan: the goal was not achieved, a clarification is not already going to
+    /// short-circuit the flow, and/or key compliance data is still absent from working
+    /// memory (e.g. because the planner's initial plan didn't include the right agents).
+    /// </summary>
+    private static bool EvaluateRequiresReplanning(AgentRunContext context, ReflectionResult deterministic)
+    {
+        if (deterministic.RequiresClarification)
+        {
+            // Clarification is itself handled as a (single-iteration) replanning path by
+            // the orchestrator/ReplanningService, so it is not double-counted here.
+            return false;
+        }
+
+        if (!deterministic.GoalAchieved)
+        {
+            return true;
+        }
+
+        var hasComplianceScore = context.GetMemory<ComplianceScoreResult>(MemoryKeys.ComplianceScoreResult) is not null;
+        var hasGuidance = context.GetMemory<UserGuidanceResponse>(MemoryKeys.UserGuidance) is not null;
+
+        return !hasComplianceScore || !hasGuidance;
+    }
+
+    /// <summary>
+    /// Evaluates whether reflection has enough confidence in category, country, and spend
+    /// to proceed, or whether the user must be asked a clarifying follow-up question.
+    /// </summary>
+    private ClarificationRequest BuildClarification(AgentRunContext context, ReflectionResult deterministic)
+    {
+        var analysis = context.GetMemory<ProcurementAnalysis>(MemoryKeys.Analysis);
+
+        var missingInformation = new List<string>(deterministic.MissingInformation);
+
+        var categoryConfidence = analysis?.CategoryConfidence ?? 0;
+        var countryConfidence = analysis?.CountryConfidence ?? 0;
+        var spendConfidence = analysis?.SpendConfidence ?? 0;
+
+        var lowCategoryConfidence = categoryConfidence < ClarificationConfidenceThreshold;
+        var lowCountryConfidence = countryConfidence < ClarificationConfidenceThreshold;
+        var lowSpendConfidence = spendConfidence < ClarificationConfidenceThreshold;
+
+        if (lowCategoryConfidence && !missingInformation.Any(m => m.Contains("categor", StringComparison.OrdinalIgnoreCase)))
+        {
+            missingInformation.Add("Procurement category");
+        }
+
+        if (lowCountryConfidence && !missingInformation.Any(m => m.Contains("countr", StringComparison.OrdinalIgnoreCase)))
+        {
+            missingInformation.Add("Country");
+        }
+
+        if (lowSpendConfidence && !missingInformation.Any(m => m.Contains("spend", StringComparison.OrdinalIgnoreCase)))
+        {
+            missingInformation.Add("Estimated spend amount");
+        }
+
+        var clarificationRequired = lowCategoryConfidence || lowCountryConfidence || lowSpendConfidence || missingInformation.Count > 0;
+
+        if (!clarificationRequired)
+        {
+            return new ClarificationRequest
+            {
+                ClarificationRequired = false,
+                MissingInformation = [],
+                FollowUpQuestion = string.Empty,
+                ConfidenceScore = deterministic.Confidence
+            };
+        }
+
+        return new ClarificationRequest
+        {
+            ClarificationRequired = true,
+            MissingInformation = missingInformation,
+            FollowUpQuestion = _clarificationService.GenerateFollowUpQuestion(missingInformation),
+            ConfidenceScore = deterministic.Confidence
+        };
     }
 
     private class ReflectionLlmResult

@@ -15,6 +15,13 @@ public class AgentRunContext
     public List<ExecutionStep> Steps { get; } = [];
     public Dictionary<string, object> WorkingMemory { get; } = [];
 
+    /// <summary>
+    /// The current Dynamic Replanning iteration (1-based). Incremented by the orchestrator
+    /// each time a follow-up plan is executed, and stamped onto every step added while it
+    /// is in effect so the UI can group the execution trace by iteration.
+    /// </summary>
+    public int CurrentIteration { get; set; } = 1;
+
     public void AddStep(int stepNumber, string agentName, string reason, string outcome)
     {
         Steps.Add(new ExecutionStep
@@ -23,7 +30,8 @@ public class AgentRunContext
             AgentName = agentName,
             Reason = reason,
             Outcome = outcome,
-            Timestamp = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow,
+            IterationNumber = CurrentIteration
         });
     }
 

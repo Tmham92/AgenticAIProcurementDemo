@@ -19,4 +19,6 @@ public static class MemoryKeys
     public const string UserGuidance = "UserGuidance";
     public const string ProcessDiscoveryFindings = "ProcessDiscoveryFindings";
     public const string GovernanceAssessment = "GovernanceAssessment";
+    public const string OrganizationalMemoryInsight = "OrganizationalMemoryInsight";
+    public const string ClarificationRequest = "ClarificationRequest";
 }
